@@ -42,7 +42,7 @@ const initialCategories: DomainCategory[] = [
 ];
 
 // Initialize or load data from localStorage
-const initializeCategories = (): DomainCategory[] => {
+export const initializeCategories = (): DomainCategory[] => {
   const storedCategories = localStorage.getItem(CATEGORIES_STORAGE_KEY);
   
   if (storedCategories) {
@@ -64,9 +64,6 @@ const getStoredCategories = (): DomainCategory[] => {
 const saveCategories = (categories: DomainCategory[]): void => {
   localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
 };
-
-// Initialize categories
-initializeCategories();
 
 // CRUD operations
 export const getCategories = (): DomainCategory[] => {
