@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -6,7 +7,8 @@ import {
   MoreHorizontal, 
   ArrowUpDown,
   ArrowLeft,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +20,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -40,26 +49,57 @@ const TrashPage: React.FC = () => {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sortBy, setSortBy] = useState<keyof Domain>('name');
+  const [sortBy, setSortBy] = useState<keyof Domain | 'tld'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [tldFilter, setTldFilter] = useState('all');
+
+  const getTldFromDomain = (domain: string) => {
+    const parts = domain.split('.');
+    return parts.length > 1 ? `.${parts[parts.length - 1]}` : '';
+  };
+
+  const getUniqueTlds = () => {
+    const tlds = new Set(domains.map(domain => getTldFromDomain(domain.name)));
+    return Array.from(tlds).sort();
+  };
 
   const loadTrashDomains = () => {
     setIsLoading(true);
     const trashDomains = getDomains({
       status: 'trash',
       search: searchQuery,
-      sortBy,
+      sortBy: sortBy === 'tld' ? 'name' : sortBy,
       sortOrder
     });
-    setDomains(trashDomains);
+
+    // Apply TLD filter if needed
+    let filteredDomains = trashDomains;
+    if (tldFilter !== 'all') {
+      filteredDomains = trashDomains.filter(domain => 
+        getTldFromDomain(domain.name) === tldFilter
+      );
+    }
+
+    // Sort by TLD if selected
+    if (sortBy === 'tld') {
+      filteredDomains.sort((a, b) => {
+        const tldA = getTldFromDomain(a.name);
+        const tldB = getTldFromDomain(b.name);
+        return sortOrder === 'asc' 
+          ? tldA.localeCompare(tldB)
+          : tldB.localeCompare(tldA);
+      });
+    }
+
+    setDomains(filteredDomains);
     setIsLoading(false);
   };
 
   useEffect(() => {
     loadTrashDomains();
-  }, [searchQuery, sortBy, sortOrder]);
+  }, [searchQuery, sortBy, sortOrder, tldFilter]);
 
-  const handleSort = (column: keyof Domain) => {
+  const handleSort = (column: keyof Domain | 'tld') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -109,8 +149,8 @@ const TrashPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex gap-4">
+      {/* Search and Filters */}
+      <div className="flex gap-4 items-center">
         <div className="relative flex-1">
           <Input
             placeholder="Search domains in trash..."
@@ -118,6 +158,38 @@ const TrashPage: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <Select value={tldFilter} onValueChange={setTldFilter}>
+          <SelectTrigger className="w-[180px]">
+            <Globe className="mr-2 h-4 w-4" />
+            <SelectValue placeholder="Filter TLD" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All TLDs</SelectItem>
+            {getUniqueTlds().map(tld => (
+              <SelectItem key={tld} value={tld}>{tld}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={(value) => setSortBy(value as keyof Domain | 'tld')}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Domain Name</SelectItem>
+            <SelectItem value="tld">TLD</SelectItem>
+            <SelectItem value="updatedAt">Deleted On</SelectItem>
+            <SelectItem value="expirationDate">Expiration Date</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort order" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">Ascending</SelectItem>
+            <SelectItem value="desc">Descending</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Domains Table */}
@@ -131,6 +203,15 @@ const TrashPage: React.FC = () => {
               >
                 <div className="flex items-center">
                   Domain Name
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer"
+                onClick={() => handleSort('tld')}
+              >
+                <div className="flex items-center">
+                  TLD
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 </div>
               </TableHead>
@@ -150,13 +231,13 @@ const TrashPage: React.FC = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-4">
+                <TableCell colSpan={5} className="text-center py-4">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : domains.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-4">
+                <TableCell colSpan={5} className="text-center py-4">
                   Trash is empty
                 </TableCell>
               </TableRow>
@@ -164,6 +245,7 @@ const TrashPage: React.FC = () => {
               domains.map((domain) => (
                 <TableRow key={domain.id}>
                   <TableCell className="font-medium">{domain.name}</TableCell>
+                  <TableCell className="font-medium text-blue-600">{getTldFromDomain(domain.name)}</TableCell>
                   <TableCell>{formatDate(domain.updatedAt)}</TableCell>
                   <TableCell>{formatDate(domain.expirationDate)}</TableCell>
                   <TableCell>

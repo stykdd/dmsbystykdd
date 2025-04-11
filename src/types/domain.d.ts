@@ -1,3 +1,4 @@
+
 export type DomainStatus = 'active' | 'expiring' | 'expired' | 'pending' | 'trash' | 'sold';
 export type Currency = 'USD' | 'EUR' | 'MAD';
 
@@ -63,7 +64,7 @@ export interface DomainFilterOptions {
   status?: DomainStatus | 'any';
   categoryId?: string;
   searchTerm?: string;
-  sortBy?: 'name' | 'registrationDate' | 'expirationDate' | 'daysUntilExpiration' | 'price';
+  sortBy?: 'name' | 'registrationDate' | 'expirationDate' | 'daysUntilExpiration' | 'price' | 'tld';
   sortOrder?: 'asc' | 'desc';
 }
 
