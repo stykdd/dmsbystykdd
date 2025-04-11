@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,11 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Add custom status colors for domain statuses
+				"status-active": "#22c55e", // Green color for active domains
+				"status-warning": "#f59e0b", // Amber color for warnings/expiring domains
+				"status-danger": "#ef4444", // Red color for danger/expired domains
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
