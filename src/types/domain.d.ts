@@ -19,6 +19,7 @@ export interface Domain {
   price?: number;
   currency?: Currency;
   marketplace?: string;
+  tld?: string; // Add this to make sorting by TLD possible
 }
 
 export interface DomainCategory {
@@ -66,6 +67,7 @@ export interface DomainFilterOptions {
   searchTerm?: string;
   sortBy?: 'name' | 'registrationDate' | 'expirationDate' | 'daysUntilExpiration' | 'price' | 'tld';
   sortOrder?: 'asc' | 'desc';
+  customSort?: (a: Domain, b: Domain) => number; // Add the customSort property
 }
 
 export interface DomainStats {

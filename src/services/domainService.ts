@@ -337,3 +337,31 @@ export const markDomainAsSold = (
   
   return soldDomain;
 };
+
+export const deleteSoldDomain = (id: string) => {
+  const soldDomains = getSoldDomainsStore();
+  const updatedSoldDomains = soldDomains.filter(domain => domain.id !== id);
+  setSoldDomainsStore(updatedSoldDomains);
+  return true;
+};
+
+export const updateSoldDomain = (id: string, data: Partial<SoldDomain>) => {
+  const soldDomains = getSoldDomainsStore();
+  const index = soldDomains.findIndex(domain => domain.id === id);
+  
+  if (index === -1) {
+    throw new Error(`Sold domain with ID ${id} not found`);
+  }
+  
+  const updatedDomain = {
+    ...soldDomains[index],
+    ...data,
+    updatedAt: new Date().toISOString()
+  };
+  
+  const updatedSoldDomains = [...soldDomains];
+  updatedSoldDomains[index] = updatedDomain;
+  
+  setSoldDomainsStore(updatedSoldDomains);
+  return updatedDomain;
+};

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     { path: '/domains', label: 'Domains', icon: <Globe size={20} /> },
     { path: '/expired', label: 'Expired Domains', icon: <AlertOctagon size={20} /> },
     { path: '/check-availability', label: 'Check Domains', icon: <Search size={20} /> },
-    { path: '/sales', label: 'Domain Sales', icon: <DollarSign size={20} /> },
+    { path: '/sales', label: 'Domains Sales', icon: <DollarSign size={20} /> },
     { path: '/todo', label: 'To-Do List', icon: <ListTodo size={20} /> },
     { path: '/password-generator', label: 'Password Generator', icon: <KeyRound size={20} /> },
     { path: '/settings', label: 'Settings', icon: <Settings size={20} /> },

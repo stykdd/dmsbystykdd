@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Card, 
   CardContent, 
@@ -17,12 +18,20 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { DollarSign, ArrowUp, ArrowDown, Tag, Euro, CreditCard, Edit, Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { getSoldDomains, getDomains } from '@/services/domainService';
+import { DollarSign, ArrowUp, ArrowDown, Tag, Euro, CreditCard, Edit, Trash2, ArrowLeft, Globe, Filter } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getSoldDomains, getDomains, deleteSoldDomain, updateSoldDomain } from '@/services/domainService';
 import { Currency, Domain, SoldDomain } from '@/types/domain';
 import { Button } from "@/components/ui/button";
-
+import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 const currencySymbols: Record<Currency, string> = {
   USD: '$',
@@ -37,6 +46,11 @@ const currencyIcons: Record<Currency, React.ReactNode> = {
 };
 
 const SalesPage = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [marketplaceFilter, setMarketplaceFilter] = useState('all');
+  const [tldFilter, setTldFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'saleDate' | 'salePrice' | 'roi';
     direction: 'asc' | 'desc';
@@ -55,10 +69,49 @@ const SalesPage = () => {
     queryFn: () => getDomains()
   });
 
-  const sortedDomains = React.useMemo(() => {
-    if (!soldDomains) return [];
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteSoldDomain(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['soldDomains'] });
+      toast({
+        title: "Domain deleted",
+        description: "The domain has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete the domain.",
+        variant: "destructive",
+      });
+    }
+  });
 
-    const sortableItems = [...soldDomains];
+  const handleEdit = (domain: SoldDomain) => {
+    // In a real application, this would open an edit modal
+    toast({
+      title: "Edit domain",
+      description: `Editing domain ${domain.name}`,
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
+  };
+
+  const filteredDomains = React.useMemo(() => {
+    return soldDomains.filter(domain => {
+      const matchesSearch = domain.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesMarketplace = marketplaceFilter === 'all' || domain.marketplace === marketplaceFilter;
+      const matchesTld = tldFilter === 'all' || domain.name.endsWith(tldFilter);
+      return matchesSearch && matchesMarketplace && matchesTld;
+    });
+  }, [soldDomains, searchQuery, marketplaceFilter, tldFilter]);
+
+  const sortedDomains = React.useMemo(() => {
+    if (!filteredDomains.length) return [];
+
+    const sortableItems = [...filteredDomains];
 
     sortableItems.sort((a, b) => {
       if (sortConfig.key === 'salePrice' || sortConfig.key === 'roi') {
@@ -81,7 +134,7 @@ const SalesPage = () => {
     });
 
     return sortableItems;
-  }, [soldDomains, sortConfig]);
+  }, [filteredDomains, sortConfig]);
 
   const requestSort = (key: 'name' | 'saleDate' | 'salePrice' | 'roi') => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -94,11 +147,6 @@ const SalesPage = () => {
   const totalSoldPurchasePrice = React.useMemo(() => {
     return soldDomains.reduce((sum, domain) => sum + domain.purchasePrice, 0);
   }, [soldDomains]);
-
-  const totalAllPurchasePrice = React.useMemo(() => {
-    const activeDomainsPrices = allDomains.reduce((sum, domain) => sum + (domain.price || 0), 0);
-    return activeDomainsPrices + totalSoldPurchasePrice;
-  }, [allDomains, totalSoldPurchasePrice]);
 
   const totalRevenue = React.useMemo(() => {
     return soldDomains.reduce((sum, domain) => sum + domain.salePrice, 0);
@@ -141,20 +189,26 @@ const SalesPage = () => {
 
   const isLoading = isSoldLoading || isDomainsLoading;
 
-  const handleEdit = (domain: SoldDomain) => {
-    // Implement your edit logic here
-    console.log("Editing domain:", domain);
-  };
+  // Get all unique marketplaces
+  const marketplaces = React.useMemo(() => {
+    const allMarketplaces = new Set<string>();
+    soldDomains.forEach(domain => {
+      if (domain.marketplace) {
+        allMarketplaces.add(domain.marketplace);
+      }
+    });
+    return Array.from(allMarketplaces);
+  }, [soldDomains]);
 
-  const handleDelete = (id: string) => {
-    // Implement your delete logic here
-    console.log("Deleting domain with ID:", id);
-  };
-
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
-  }
+  // Get all unique TLDs
+  const tlds = React.useMemo(() => {
+    const allTlds = new Set<string>();
+    soldDomains.forEach(domain => {
+      const tld = domain.name.substring(domain.name.lastIndexOf('.'));
+      allTlds.add(tld);
+    });
+    return Array.from(allTlds).sort();
+  }, [soldDomains]);
 
   if (soldError) {
     return <div className="text-red-500 p-4">Error loading sold domains data.</div>;
@@ -162,30 +216,38 @@ const SalesPage = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Domain Sales</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Domains Sales</h1>
+        <Button asChild variant="outline">
+          <Link to="/domains">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Return to Domains
+          </Link>
+        </Button>
+      </div>
       <p className="text-muted-foreground">Track your domain selling performance and revenue</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-red-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Purchase (All)</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Purchase</CardTitle>
+            <DollarSign className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalAllPurchasePrice)}</div>
+            <div className="text-2xl font-bold text-red-500">{formatCurrency(totalSoldPurchasePrice)}</div>
             <p className="text-xs text-muted-foreground">
-              Investment across all domains
+              Investment across sold domains
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-green-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <div className="text-2xl font-bold text-green-500">{formatCurrency(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
               From {soldDomains.length} domains sold
             </p>
@@ -227,6 +289,58 @@ const SalesPage = () => {
         </Card>
       </div>
 
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="relative w-[300px]">
+          <Input
+            placeholder="Search domains..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+        </div>
+
+        <div className="w-full sm:w-auto">
+          <Select
+            value={marketplaceFilter}
+            onValueChange={setMarketplaceFilter}
+          >
+            <SelectTrigger className="w-[180px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Marketplace" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Marketplaces</SelectItem>
+              {marketplaces.map((marketplace) => (
+                <SelectItem key={marketplace} value={marketplace}>
+                  {marketplace.charAt(0).toUpperCase() + marketplace.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-auto">
+          <Select
+            value={tldFilter}
+            onValueChange={setTldFilter}
+          >
+            <SelectTrigger className="w-[180px]">
+              <Globe className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="TLD" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All TLDs</SelectItem>
+              {tlds.map(tld => (
+                <SelectItem key={tld} value={tld}>
+                  {tld}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Sales History</CardTitle>
@@ -244,6 +358,9 @@ const SalesPage = () => {
                 >
                   Domain Name {renderSortIcon('name')}
                 </TableHead>
+                <TableHead>
+                  TLD
+                </TableHead>
                 <TableHead 
                   className="cursor-pointer"
                   onClick={() => requestSort('saleDate')}
@@ -258,6 +375,7 @@ const SalesPage = () => {
                 </TableHead>
                 <TableHead>Purchase Price</TableHead>
                 <TableHead>Buyer</TableHead>
+                <TableHead>Marketplace</TableHead>
                 <TableHead 
                   className="cursor-pointer"
                   onClick={() => requestSort('roi')}
@@ -268,14 +386,22 @@ const SalesPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedDomains.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-6">Loading...</TableCell>
+                </TableRow>
+              ) : sortedDomains.length > 0 ? (
                 sortedDomains.map((domain) => (
                   <TableRow key={domain.id}>
                     <TableCell className="font-medium">{domain.name}</TableCell>
+                    <TableCell className="font-medium text-blue-600">
+                      {domain.name.substring(domain.name.lastIndexOf('.'))}
+                    </TableCell>
                     <TableCell>{formatDate(domain.saleDate)}</TableCell>
                     <TableCell>{formatCurrency(domain.salePrice, domain.currency)}</TableCell>
                     <TableCell>{formatCurrency(domain.purchasePrice, domain.currency)}</TableCell>
                     <TableCell>{domain.buyer || '-'}</TableCell>
+                    <TableCell>{domain.marketplace ? domain.marketplace.charAt(0).toUpperCase() + domain.marketplace.slice(1) : '-'}</TableCell>
                     <TableCell>{domain.roi.toFixed(2)}%</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -291,7 +417,7 @@ const SalesPage = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                     No domain sales data available yet
                   </TableCell>
                 </TableRow>
