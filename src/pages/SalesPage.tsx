@@ -31,6 +31,16 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const currencySymbols: Record<Currency, string> = {
   USD: '$',
@@ -44,12 +54,202 @@ const currencyIcons: Record<Currency, React.ReactNode> = {
   MAD: <CreditCard className="h-4 w-4" />
 };
 
+interface EditSoldDomainDialogProps {
+  domain: SoldDomain | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (domain: SoldDomain) => void;
+}
+
+const EditSoldDomainDialog: React.FC<EditSoldDomainDialogProps> = ({ 
+  domain, 
+  open, 
+  onOpenChange,
+  onSave
+}) => {
+  const [editedDomain, setEditedDomain] = useState<SoldDomain | null>(null);
+
+  React.useEffect(() => {
+    if (domain) {
+      setEditedDomain({ ...domain });
+    }
+  }, [domain]);
+
+  if (!editedDomain) return null;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedDomain(prev => {
+      if (!prev) return prev;
+      
+      if (name === 'salePrice' || name === 'purchasePrice') {
+        const numValue = parseFloat(value);
+        const updatedDomain = { 
+          ...prev, 
+          [name]: isNaN(numValue) ? 0 : numValue
+        };
+
+        if (updatedDomain.purchasePrice > 0) {
+          const profit = updatedDomain.salePrice - updatedDomain.purchasePrice;
+          updatedDomain.roi = (profit / updatedDomain.purchasePrice) * 100;
+        }
+        
+        return updatedDomain;
+      }
+      
+      return { ...prev, [name]: value };
+    });
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setEditedDomain(prev => {
+      if (!prev) return prev;
+      return { ...prev, [name]: value };
+    });
+  };
+
+  const handleSave = () => {
+    if (editedDomain) {
+      onSave(editedDomain);
+      onOpenChange(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Edit Domain Sale</DialogTitle>
+          <DialogDescription>
+            Update the sale information for {editedDomain.name}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Domain Name
+            </Label>
+            <Input
+              id="name"
+              name="name"
+              value={editedDomain.name}
+              className="col-span-3"
+              readOnly
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="salePrice" className="text-right">
+              Sale Price
+            </Label>
+            <Input
+              id="salePrice"
+              name="salePrice"
+              type="number"
+              value={editedDomain.salePrice}
+              onChange={handleChange}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="purchasePrice" className="text-right">
+              Purchase Price
+            </Label>
+            <Input
+              id="purchasePrice"
+              name="purchasePrice"
+              type="number"
+              value={editedDomain.purchasePrice}
+              onChange={handleChange}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="currency" className="text-right">
+              Currency
+            </Label>
+            <Select 
+              name="currency"
+              value={editedDomain.currency || 'USD'} 
+              onValueChange={(value) => handleSelectChange('currency', value)}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+                <SelectItem value="MAD">MAD (د.م.)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="saleDate" className="text-right">
+              Sale Date
+            </Label>
+            <Input
+              id="saleDate"
+              name="saleDate"
+              type="date"
+              value={new Date(editedDomain.saleDate).toISOString().split('T')[0]}
+              onChange={handleChange}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="buyer" className="text-right">
+              Buyer
+            </Label>
+            <Input
+              id="buyer"
+              name="buyer"
+              value={editedDomain.buyer || ''}
+              onChange={handleChange}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="marketplace" className="text-right">
+              Marketplace
+            </Label>
+            <Input
+              id="marketplace"
+              name="marketplace"
+              value={editedDomain.marketplace || ''}
+              onChange={handleChange}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="roi" className="text-right">
+              ROI (%)
+            </Label>
+            <Input
+              id="roi"
+              value={editedDomain.roi?.toFixed(2) || '0'}
+              className="col-span-3"
+              readOnly
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleSave}>Save changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const SalesPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [marketplaceFilter, setMarketplaceFilter] = useState('all');
   const [tldFilter, setTldFilter] = useState('all');
+  const [editingDomain, setEditingDomain] = useState<SoldDomain | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'saleDate' | 'salePrice' | 'roi';
     direction: 'asc' | 'desc';
@@ -86,11 +286,31 @@ const SalesPage = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (domain: SoldDomain) => updateSoldDomain(domain),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['soldDomains'] });
+      toast({
+        title: "Domain updated",
+        description: "The domain has been successfully updated.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update the domain.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleEdit = (domain: SoldDomain) => {
-    toast({
-      title: "Edit domain",
-      description: `Editing domain ${domain.name}`,
-    });
+    setEditingDomain(domain);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveDomain = (updatedDomain: SoldDomain) => {
+    updateMutation.mutate(updatedDomain);
   };
 
   const handleDelete = (id: string) => {
@@ -422,6 +642,13 @@ const SalesPage = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <EditSoldDomainDialog 
+        domain={editingDomain}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSave={handleSaveDomain}
+      />
     </div>
   );
 };
