@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -18,7 +17,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { DollarSign, ArrowUp, ArrowDown, Tag, Euro, CreditCard, Edit, Trash2, ArrowLeft, Globe, Filter } from 'lucide-react';
+import { DollarSign, ArrowUp, ArrowDown, Tag, Euro, CreditCard, Edit, Trash2, ArrowLeft, Globe, Filter, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSoldDomains, getDomains, deleteSoldDomain, updateSoldDomain } from '@/services/domainService';
 import { Currency, Domain, SoldDomain } from '@/types/domain';
@@ -88,7 +87,6 @@ const SalesPage = () => {
   });
 
   const handleEdit = (domain: SoldDomain) => {
-    // In a real application, this would open an edit modal
     toast({
       title: "Edit domain",
       description: `Editing domain ${domain.name}`,
@@ -189,7 +187,6 @@ const SalesPage = () => {
 
   const isLoading = isSoldLoading || isDomainsLoading;
 
-  // Get all unique marketplaces
   const marketplaces = React.useMemo(() => {
     const allMarketplaces = new Set<string>();
     soldDomains.forEach(domain => {
@@ -200,7 +197,6 @@ const SalesPage = () => {
     return Array.from(allMarketplaces);
   }, [soldDomains]);
 
-  // Get all unique TLDs
   const tlds = React.useMemo(() => {
     const allTlds = new Set<string>();
     soldDomains.forEach(domain => {
