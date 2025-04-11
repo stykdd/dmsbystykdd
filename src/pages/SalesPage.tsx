@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -19,8 +20,8 @@ import {
 import { DollarSign, ArrowUp, ArrowDown, Tag, Euro, CreditCard, Edit, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getSoldDomains, getDomains } from '@/services/domainService';
-import { Currency, Domain } from '@/types/domain';
-import { Button } from "@/components/ui/button"; // Added import
+import { Currency, Domain, SoldDomain } from '@/types/domain';
+import { Button } from "@/components/ui/button";
 
 
 const currencySymbols: Record<Currency, string> = {
@@ -140,7 +141,7 @@ const SalesPage = () => {
 
   const isLoading = isSoldLoading || isDomainsLoading;
 
-  const handleEdit = (domain: Domain) => {
+  const handleEdit = (domain: SoldDomain) => {
     // Implement your edit logic here
     console.log("Editing domain:", domain);
   };
@@ -256,15 +257,14 @@ const SalesPage = () => {
                   Sale Price {renderSortIcon('salePrice')}
                 </TableHead>
                 <TableHead>Purchase Price</TableHead>
-                <TableHead>Marketplace</TableHead> {/* Added Marketplace column */}
+                <TableHead>Buyer</TableHead>
                 <TableHead 
                   className="cursor-pointer"
                   onClick={() => requestSort('roi')}
                 >
                   ROI {renderSortIcon('roi')}
                 </TableHead>
-                <TableHead>Buyer</TableHead>
-                <TableHead>Actions</TableHead> {/* Added Actions column */}
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -272,12 +272,11 @@ const SalesPage = () => {
                 sortedDomains.map((domain) => (
                   <TableRow key={domain.id}>
                     <TableCell className="font-medium">{domain.name}</TableCell>
+                    <TableCell>{formatDate(domain.saleDate)}</TableCell>
                     <TableCell>{formatCurrency(domain.salePrice, domain.currency)}</TableCell>
                     <TableCell>{formatCurrency(domain.purchasePrice, domain.currency)}</TableCell>
-                    <TableCell>{formatDate(domain.saleDate)}</TableCell>
                     <TableCell>{domain.buyer || '-'}</TableCell>
-                    <TableCell>{domain.marketplace || '-'}</TableCell> {/* Added Marketplace data */}
-                    <TableCell>{domain.roi}%</TableCell>
+                    <TableCell>{domain.roi.toFixed(2)}%</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(domain)}>
@@ -292,7 +291,7 @@ const SalesPage = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                     No domain sales data available yet
                   </TableCell>
                 </TableRow>
