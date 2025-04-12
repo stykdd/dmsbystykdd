@@ -18,7 +18,7 @@ export const useTheme = () => useContext(ThemeContext);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     // Check localStorage for saved theme
-    const savedTheme = localStorage.getItem('dms_theme') as Theme;
+    const savedTheme = localStorage.getItem('app-theme') as Theme;
     // Use saved theme or match system preference
     return savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   });
@@ -31,7 +31,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       document.documentElement.classList.remove('dark');
     }
     // Save theme preference to localStorage
-    localStorage.setItem('dms_theme', theme);
+    localStorage.setItem('app-theme', theme);
   }, [theme]);
 
   return (
