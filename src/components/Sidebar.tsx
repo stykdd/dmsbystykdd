@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { 
   Home, 
   Globe, 
@@ -27,6 +28,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const { logout, user } = useAuth();
+  const { theme } = useTheme();
   
   const isActiveRoute = (path: string) => {
     return location.pathname === path;
@@ -46,6 +48,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   // Show admin link for admin users
   const isAdmin = user?.email === 'admin@dms.com';
 
+  // Dynamic color based on theme
+  const logoColor = theme === 'dark' ? 'text-blue-300' : 'text-blue-600';
+
   return (
     <div className={cn(
       "h-full flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
@@ -53,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     )}>
       <div className="p-4 h-[65px] flex items-center justify-between border-b border-sidebar-border">
         {!collapsed && (
-          <span className="text-xl font-bold text-blue-600">
+          <span className={`text-xl font-bold ${logoColor}`}>
             DMS by stykdd
           </span>
         )}

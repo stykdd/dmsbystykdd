@@ -1,16 +1,11 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const ThemeToggle = () => {
   const { theme, setTheme } = useTheme();
-
-  // Ensure theme is saved to localStorage when changed
-  useEffect(() => {
-    localStorage.setItem('app-theme', theme);
-  }, [theme]);
 
   return (
     <div className="flex flex-col space-y-2">
@@ -24,7 +19,7 @@ const ThemeToggle = () => {
         <ToggleGroupItem 
           value="light" 
           aria-label="Light mode" 
-          className="flex items-center gap-1.5 data-[state=on]:bg-primary data-[state=on]:text-white rounded-md transition-all duration-200"
+          className="flex items-center gap-1.5 data-[state=on]:bg-blue-500 data-[state=on]:text-white rounded-md transition-all duration-200"
         >
           <Sun className="h-4 w-4" />
           <span>Light</span>
@@ -32,7 +27,7 @@ const ThemeToggle = () => {
         <ToggleGroupItem 
           value="dark" 
           aria-label="Dark mode" 
-          className="flex items-center gap-1.5 data-[state=on]:bg-primary data-[state=on]:text-white rounded-md transition-all duration-200"
+          className="flex items-center gap-1.5 data-[state=on]:bg-blue-800 data-[state=on]:text-white rounded-md transition-all duration-200"
         >
           <Moon className="h-4 w-4" />
           <span>Dark</span>
