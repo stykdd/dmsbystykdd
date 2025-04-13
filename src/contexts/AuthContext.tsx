@@ -30,6 +30,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check for stored user on component mount
   useEffect(() => {
+    // First ensure our admin user exists
+    ensureUsers();
+    
+    // Then check for logged in user
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
@@ -40,9 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     setIsLoading(false);
-    
-    // Ensure user database is initialized with admin account
-    ensureUsers();
   }, []);
 
   const login = async (identifierInput: string, password: string): Promise<boolean> => {

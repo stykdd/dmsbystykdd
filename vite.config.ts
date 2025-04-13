@@ -11,14 +11,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react({
-      // Add SWC options to target older Node versions
-      swcOptions: {
-        jsc: {
-          target: "es2020",
-        },
-      },
-    }),
+    react(),
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),

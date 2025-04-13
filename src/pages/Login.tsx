@@ -7,6 +7,7 @@ import { Globe } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import LoginForm from '../components/auth/LoginForm';
+import { ensureUsers } from '../services/authService';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,9 @@ const Login: React.FC = () => {
   const [notInstalled, setNotInstalled] = useState(false);
 
   useEffect(() => {
+    // Ensure admin user exists
+    ensureUsers();
+    
     // If already authenticated, redirect to dashboard
     if (isAuthenticated) {
       navigate('/dashboard');

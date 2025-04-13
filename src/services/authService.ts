@@ -37,7 +37,7 @@ export const getStoredUsers = (): StoredUser[] => {
 };
 
 export const ensureUsers = (): StoredUser[] => {
-  const users = getStoredUsers();
+  let users = getStoredUsers();
   
   // Make sure admin user exists with correct credentials
   const adminExists = users.some(u => 
@@ -56,6 +56,28 @@ export const ensureUsers = (): StoredUser[] => {
     
     users.push(adminUser);
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  }
+  
+  // Force clear and reinitialize users if there are issues
+  try {
+    const testParse = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
+    if (!Array.isArray(testParse)) {
+      throw new Error('Stored users is not an array');
+    }
+  } catch (e) {
+    console.error("Error with stored users, reinitializing:", e);
+    
+    // Reinitialize with admin account
+    const adminUser: StoredUser = {
+      id: 'admin_1',
+      username: 'admin',
+      email: 'admin@dms.com',
+      password: 'admin',
+      provider: 'email'
+    };
+    
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify([adminUser]));
+    users = [adminUser];
   }
   
   return users;

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { ensureUsers } from '../../services/authService';
 
 interface LoginFormProps {
   defaultUsername?: string;
@@ -24,6 +25,11 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const [identifier, setIdentifier] = useState(defaultUsername);
   const [password, setPassword] = useState(defaultPassword);
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Ensure admin account exists on component mount
+  useEffect(() => {
+    ensureUsers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
