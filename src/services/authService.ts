@@ -18,12 +18,12 @@ export const getStoredUsers = (): StoredUser[] => {
     return JSON.parse(usersJson);
   }
   
-  // Initialize with admin account
+  // Initialize with admin account using simplified credentials
   const adminUser: StoredUser = {
     id: 'admin_1',
     username: 'admin',
     email: 'admin@dms.com',
-    password: 'Admin@1122',
+    password: 'admin',
     provider: 'email'
   };
   

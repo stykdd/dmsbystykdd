@@ -16,7 +16,7 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ 
   defaultEmail = 'admin@dms.com',
-  defaultPassword = 'Admin@1122'
+  defaultPassword = 'admin'
 }) => {
   const navigate = useNavigate();
   const { login, error: authError, isLoading } = useAuth();

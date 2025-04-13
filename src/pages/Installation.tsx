@@ -68,10 +68,10 @@ const Installation: React.FC = () => {
   const adminForm = useForm<z.infer<typeof adminFormSchema>>({
     resolver: zodResolver(adminFormSchema),
     defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
+      username: "admin",
+      email: "admin@dms.com",
+      password: "admin",
+      confirmPassword: "admin",
     },
   });
 
