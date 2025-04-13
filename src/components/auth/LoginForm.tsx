@@ -10,18 +10,18 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 interface LoginFormProps {
-  defaultEmail?: string;
+  defaultUsername?: string;
   defaultPassword?: string;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ 
-  defaultEmail = 'admin@dms.com',
+  defaultUsername = 'admin',
   defaultPassword = 'admin'
 }) => {
   const navigate = useNavigate();
   const { login, error: authError, isLoading } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState(defaultEmail);
+  const [identifier, setIdentifier] = useState(defaultUsername);
   const [password, setPassword] = useState(defaultPassword);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -30,7 +30,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
     setLoginError(null);
     
     try {
-      const result = await login(email, password);
+      const result = await login(identifier, password);
       if (result) {
         navigate('/dashboard');
         toast({
@@ -64,16 +64,16 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
       <div className="space-y-4">
         <div>
-          <Label htmlFor="email">Email address</Label>
+          <Label htmlFor="identifier">Username or Email</Label>
           <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
+            id="identifier"
+            name="identifier"
+            type="text"
+            autoComplete="username email"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="Enter your username or email"
             className="mt-1"
           />
         </div>

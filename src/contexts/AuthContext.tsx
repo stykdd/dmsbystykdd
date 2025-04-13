@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ensureUsers();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (identifierInput: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Find user by credentials
-      const user = findUserByCredentials(email, password);
+      const user = findUserByCredentials(identifierInput, password);
       
       if (!user) {
         throw new Error("Invalid login credentials");
