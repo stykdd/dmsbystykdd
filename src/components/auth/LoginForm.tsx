@@ -30,6 +30,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
     setLoginError(null);
     
     try {
+      console.log("Submitting login form with:", identifier, "Password length:", password.length);
       const result = await login(identifier, password);
       if (result) {
         navigate('/dashboard');

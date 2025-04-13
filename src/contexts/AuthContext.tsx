@@ -32,11 +32,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error("Error parsing stored user:", e);
+        localStorage.removeItem('user');
+      }
     }
     setIsLoading(false);
     
-    // Ensure user database is initialized
+    // Ensure user database is initialized with admin account
     ensureUsers();
   }, []);
 
@@ -45,6 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
+      console.log("Login attempt with:", identifierInput, "Password length:", password.length);
+      
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -52,8 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = findUserByCredentials(identifierInput, password);
       
       if (!user) {
+        console.log("No user found with these credentials");
         throw new Error("Invalid login credentials");
       }
+      
+      console.log("User found, logging in:", user);
       
       // Remove password from user object before storing
       const { password: _, ...userWithoutPassword } = user;
@@ -64,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
       return true;
     } catch (err: any) {
+      console.error("Login error:", err);
       setError(err.message || 'An error occurred during login');
       setIsLoading(false);
       throw err;
