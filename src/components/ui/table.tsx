@@ -1,6 +1,45 @@
-import * as React from "react"
 
+import * as React from "react"
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// Interface for sortable column header
+export interface SortableHeaderProps<T> {
+  column: keyof T | string;
+  label: string;
+  currentSortColumn?: keyof T | string;
+  currentSortDirection?: 'asc' | 'desc';
+  onSort?: (column: keyof T | string) => void;
+}
+
+// Reusable sortable header component
+export function SortableHeader<T>({
+  column,
+  label,
+  currentSortColumn,
+  currentSortDirection,
+  onSort
+}: SortableHeaderProps<T>) {
+  const isSorted = currentSortColumn === column;
+  
+  return (
+    <div 
+      className="flex items-center cursor-pointer"
+      onClick={() => onSort && onSort(column)}
+    >
+      {label}
+      {isSorted ? (
+        currentSortDirection === 'asc' ? (
+          <ArrowUp className="ml-2 h-4 w-4" />
+        ) : (
+          <ArrowDown className="ml-2 h-4 w-4" />
+        )
+      ) : (
+        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+      )}
+    </div>
+  );
+}
 
 const Table = React.forwardRef<
   HTMLTableElement,

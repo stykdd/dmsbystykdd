@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
   RefreshCw, 
-  ArrowUpDown,
   ArrowLeft,
   Globe,
   Trash2
@@ -25,6 +23,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  SortableHeader
 } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { getDomains, deleteDomain } from '../services/domainService';
@@ -55,22 +54,19 @@ const ExpiredPage: React.FC = () => {
 
     const allDomains = getDomains({
       search: searchQuery,
-      sortBy: sortBy === 'tld' ? 'name' : sortBy,
+      sortBy: sortBy === 'tld' ? 'name' : sortBy as keyof Domain,
       sortOrder,
       excludeTrash: true
     });
 
-    // Filter to only expired domains
     let expiredDomains = allDomains.filter(domain => domain.status === 'expired');
 
-    // Apply TLD filter
     if (tldFilter !== 'all') {
       expiredDomains = expiredDomains.filter(domain => 
         getTldFromDomain(domain.name) === tldFilter
       );
     }
 
-    // Sort by TLD if selected
     if (sortBy === 'tld') {
       expiredDomains.sort((a, b) => {
         const tldA = getTldFromDomain(a.name);
@@ -81,7 +77,6 @@ const ExpiredPage: React.FC = () => {
       });
     }
 
-    // Sort by days overdue
     if (sortBy === 'daysUntilExpiration') {
       expiredDomains.sort((a, b) => {
         return sortOrder === 'asc'
@@ -131,13 +126,12 @@ const ExpiredPage: React.FC = () => {
           <Button variant="secondary" asChild>
             <Link to="/domains">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Return to Domains
+              Return to Domains Portfolio
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-4 items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
@@ -182,46 +176,45 @@ const ExpiredPage: React.FC = () => {
         </Select>
       </div>
 
-      {/* Domains Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('name')}
-              >
-                <div className="flex items-center">
-                  Domain Name
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
+              <TableHead className="cursor-pointer">
+                <SortableHeader<Domain>
+                  column="name"
+                  label="Domain Name"
+                  currentSortColumn={sortBy}
+                  currentSortDirection={sortOrder}
+                  onSort={handleSort}
+                />
               </TableHead>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('tld')}
-              >
-                <div className="flex items-center">
-                  TLD
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
+              <TableHead className="cursor-pointer">
+                <SortableHeader<Domain>
+                  column="tld"
+                  label="TLD"
+                  currentSortColumn={sortBy}
+                  currentSortDirection={sortOrder}
+                  onSort={handleSort}
+                />
               </TableHead>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('expirationDate')}
-              >
-                <div className="flex items-center">
-                  Expiration Date
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
+              <TableHead className="cursor-pointer">
+                <SortableHeader<Domain>
+                  column="expirationDate"
+                  label="Expiration Date"
+                  currentSortColumn={sortBy}
+                  currentSortDirection={sortOrder}
+                  onSort={handleSort}
+                />
               </TableHead>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('daysUntilExpiration')}
-              >
-                <div className="flex items-center">
-                  Days Overdue
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
+              <TableHead className="cursor-pointer">
+                <SortableHeader<Domain>
+                  column="daysUntilExpiration"
+                  label="Days Overdue"
+                  currentSortColumn={sortBy}
+                  currentSortDirection={sortOrder}
+                  onSort={handleSort}
+                />
               </TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>

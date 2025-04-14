@@ -4,22 +4,21 @@ import {
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
 import { 
   Table, 
   TableBody, 
-  TableCaption, 
   TableCell, 
   TableHead, 
   TableHeader, 
-  TableRow 
+  TableRow,
+  SortableHeader
 } from "@/components/ui/table";
 import { DollarSign, ArrowUp, ArrowDown, Tag, Euro, CreditCard, Edit, Trash2, ArrowLeft, Globe, Filter, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSoldDomains, getDomains, deleteSoldDomain, updateSoldDomain } from '@/services/domainService';
+import { getSoldDomains, deleteSoldDomain, updateSoldDomain } from '@/services/domainService';
 import { Currency, Domain, SoldDomain } from '@/types/domain';
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
@@ -265,11 +264,13 @@ const SalesPage = () => {
 
   const { data: allDomains = [], isLoading: isDomainsLoading } = useQuery({
     queryKey: ['domains'],
-    queryFn: () => getDomains()
+    queryFn: () => getSoldDomains()
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteSoldDomain(id),
+    mutationFn: (id: string) => {
+      return Promise.resolve(deleteSoldDomain(id));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['soldDomains'] });
       toast({
@@ -287,7 +288,9 @@ const SalesPage = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (domain: SoldDomain) => updateSoldDomain(domain),
+    mutationFn: (domain: SoldDomain) => {
+      return updateSoldDomain(domain);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['soldDomains'] });
       toast({
@@ -375,16 +378,6 @@ const SalesPage = () => {
     return soldDomains.reduce((sum, domain) => sum + domain.roi, 0) / soldDomains.length;
   }, [soldDomains]);
 
-  const renderSortIcon = (columnName: 'name' | 'saleDate' | 'salePrice' | 'roi') => {
-    if (sortConfig.key !== columnName) return null;
-
-    return sortConfig.direction === 'asc' ? (
-      <ArrowUp size={14} className="inline ml-1" />
-    ) : (
-      <ArrowDown size={14} className="inline ml-1" />
-    );
-  };
-
   const formatCurrency = (amount: number, currency?: Currency) => {
     const currencyCode = currency || 'USD';
     const symbol = currencySymbols[currencyCode];
@@ -437,10 +430,11 @@ const SalesPage = () => {
         <Button asChild variant="outline">
           <Link to="/domains">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to Domains
+            Return to Domains Portfolio
           </Link>
         </Button>
       </div>
+      
       <p className="text-muted-foreground">Track your domain selling performance and revenue</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -568,35 +562,45 @@ const SalesPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('name')}
-                >
-                  Domain Name {renderSortIcon('name')}
+                <TableHead className="cursor-pointer">
+                  <SortableHeader<SoldDomain>
+                    column="name"
+                    label="Domain Name"
+                    currentSortColumn={sortConfig.key}
+                    currentSortDirection={sortConfig.direction}
+                    onSort={requestSort}
+                  />
                 </TableHead>
-                <TableHead>
-                  TLD
+                <TableHead>TLD</TableHead>
+                <TableHead className="cursor-pointer">
+                  <SortableHeader<SoldDomain>
+                    column="saleDate"
+                    label="Sale Date"
+                    currentSortColumn={sortConfig.key}
+                    currentSortDirection={sortConfig.direction}
+                    onSort={requestSort}
+                  />
                 </TableHead>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('saleDate')}
-                >
-                  Sale Date {renderSortIcon('saleDate')}
-                </TableHead>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('salePrice')}
-                >
-                  Sale Price {renderSortIcon('salePrice')}
+                <TableHead className="cursor-pointer">
+                  <SortableHeader<SoldDomain>
+                    column="salePrice"
+                    label="Sale Price"
+                    currentSortColumn={sortConfig.key}
+                    currentSortDirection={sortConfig.direction}
+                    onSort={requestSort}
+                  />
                 </TableHead>
                 <TableHead>Purchase Price</TableHead>
                 <TableHead>Buyer</TableHead>
                 <TableHead>Marketplace</TableHead>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('roi')}
-                >
-                  ROI {renderSortIcon('roi')}
+                <TableHead className="cursor-pointer">
+                  <SortableHeader<SoldDomain>
+                    column="roi"
+                    label="ROI"
+                    currentSortColumn={sortConfig.key}
+                    currentSortDirection={sortConfig.direction}
+                    onSort={requestSort}
+                  />
                 </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
