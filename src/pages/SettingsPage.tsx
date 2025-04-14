@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Trash2, Edit, Check, X, PlusCircle, Tags, Globe, User, Mail, Moon, Sun, Heart } from 'lucide-react';
+import { Settings, Plus, Trash2, Edit, Check, X, PlusCircle, Tags, Globe, User, Mail, Moon, Sun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,7 +70,6 @@ import * as z from "zod";
 import ThemeToggle from '@/components/admin/ThemeToggle';
 import EmailSettings from '@/components/admin/EmailSettings';
 import NotificationSettings from '@/components/admin/NotificationSettings';
-import DonationSettings from '@/components/admin/DonationSettings';
 import { initializeEmailNotifier } from '@/services/emailNotifier';
 
 const SettingsPage: React.FC = () => {
@@ -360,7 +359,6 @@ const SettingsPage: React.FC = () => {
           <TabsTrigger value="general">Notifications Settings</TabsTrigger>
           <TabsTrigger value="email">Email Configuration</TabsTrigger>
           <TabsTrigger value="theme">Theme Settings</TabsTrigger>
-          <TabsTrigger value="donation">Donation Settings</TabsTrigger>
         </TabsList>
         
         {/* Registrars Tab */}
@@ -849,11 +847,6 @@ const SettingsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        {/* Donation Settings Tab */}
-        <TabsContent value="donation">
-          <DonationSettings />
         </TabsContent>
       </Tabs>
     </div>
