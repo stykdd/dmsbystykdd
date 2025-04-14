@@ -82,6 +82,9 @@ export interface DomainFilterOptions {
   sortOrder?: 'asc' | 'desc';
   customSort?: (a: Domain, b: Domain) => number;
   excludeTrash?: boolean;
+  search?: string; // Add this property
+  registrarId?: string; // Add this property
+  registrarAccountId?: string; // Add this property
 }
 
 export interface DomainStats {
@@ -90,9 +93,16 @@ export interface DomainStats {
   expiringSoon: number;
   expiredDomains: number;
   domainsInTrash: number;
+  total?: number; // Add this property 
+  expiring?: number; // Add this property
+  expired?: number; // Add this property
+  trash?: number; // Add this property
+  totalSold?: number; // Add this property
+  totalRevenue?: number; // Add this property
 }
 
 export interface BulkCheckResult {
   domain: string;
   available: boolean;
+  error?: string; // Add this property
 }

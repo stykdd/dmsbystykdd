@@ -1,367 +1,331 @@
-import { v4 as uuidv4 } from 'uuid';
-import { 
-  Domain, 
-  DomainStatus, 
-  DomainFilterOptions, 
-  DomainStats,
-  BulkCheckResult,
-  SoldDomain,
-  Currency
-} from '../types/domain';
+import { Domain, DomainFilterOptions, DomainStatus, WhoisData, SoldDomain } from '../types/domain';
+import { mockDomains } from '../mock-data/domains';
+import { mockSoldDomains } from '../mock-data/soldDomains';
 
-// Import services
-import { getDomainStore, setDomainStore, getSoldDomainsStore, setSoldDomainsStore } from './domain/mockData';
-import { 
-  calculateDaysUntilExpiration, 
-  determineDomainStatus, 
-  updateDomainStatus 
-} from './domain/utils';
-import { 
-  fetchWhoisData,
-  refreshWhoisData as refreshWhois
-} from './domain/whoisService';
-import { 
-  applyDomainFilters, 
-  applyDomainSorting 
-} from './domain/domainFilters';
-import { 
-  checkDomainAvailability,
-  bulkCheckAvailability as bulkCheck
-} from './domain/availabilityService';
-import { getDomainStats as getStats } from './domain/statsService';
+const DOMAINS_KEY = 'domains';
+const SOLD_DOMAINS_KEY = 'soldDomains';
 
-// Re-export for compatibility
-export { 
-  checkDomainAvailability, 
-  fetchWhoisData 
+// Helper function to simulate an API call delay
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Initialize domains in local storage if they don't exist
+const initializeDomains = () => {
+  if (!localStorage.getItem(DOMAINS_KEY)) {
+    localStorage.setItem(DOMAINS_KEY, JSON.stringify(mockDomains));
+  }
 };
 
-// Export the bulk check as is
-export const bulkCheckAvailability = bulkCheck;
+const initializeSoldDomains = () => {
+  if (!localStorage.getItem(SOLD_DOMAINS_KEY)) {
+    localStorage.setItem(SOLD_DOMAINS_KEY, JSON.stringify(mockSoldDomains));
+  }
+};
 
-// CRUD operations
-export const getDomains = (filters?: DomainFilterOptions): Domain[] => {
-  // Get domains with updated statuses
-  const domains = getDomainStore().map(updateDomainStatus);
-  
-  // First filter domains
-  let filteredDomains = applyDomainFilters(domains, filters);
-  
-  // Then sort domains if needed
-  if (filters?.sortBy) {
-    filteredDomains = applyDomainSorting(
-      filteredDomains, 
-      filters.sortBy, 
-      filters.sortOrder || 'asc'
+initializeDomains();
+initializeSoldDomains();
+
+// Generic function to get items from local storage
+const getItemsFromLocalStorage = <T>(key: string): T[] => {
+  const storedData = localStorage.getItem(key);
+  return storedData ? JSON.parse(storedData) : [];
+};
+
+// Generic function to set items in local storage
+const setItemsInLocalStorage = <T>(key: string, items: T[]): void => {
+    localStorage.setItem(key, JSON.stringify(items));
+};
+
+// Get domains from local storage
+const getDomainsStore = (): Domain[] => {
+  return getItemsFromLocalStorage<Domain>(DOMAINS_KEY);
+};
+
+// Save domains to local storage
+const saveDomainsStore = (domains: Domain[]): void => {
+    setItemsInLocalStorage<Domain>(DOMAINS_KEY, domains);
+};
+
+// Get sold domains from local storage
+const getSoldDomainsStore = (): SoldDomain[] => {
+  return getItemsFromLocalStorage<SoldDomain>(SOLD_DOMAINS_KEY);
+};
+
+// Save sold domains to local storage
+const saveSoldDomainsStore = (soldDomains: SoldDomain[]): void => {
+    setItemsInLocalStorage<SoldDomain>(SOLD_DOMAINS_KEY, soldDomains);
+};
+
+// Function to calculate days until expiration
+const calculateDaysUntilExpiration = (expirationDate: string): number => {
+  const now = new Date();
+  const expiration = new Date(expirationDate);
+  const diff = expiration.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 3600 * 24));
+};
+
+// Function to get all domains with optional filters
+export const getDomains = (options: DomainFilterOptions = {}): Domain[] => {
+  initializeDomains();
+  let domains = getDomainsStore();
+
+  if (options.excludeTrash) {
+    domains = domains.filter(domain => domain.status !== 'trash');
+  }
+
+  if (options.status && options.status !== 'any') {
+    domains = domains.filter(domain => domain.status === options.status);
+  }
+
+  if (options.categoryId) {
+    domains = domains.filter(domain => domain.categoryId === options.categoryId || domain.categoryIds?.includes(options.categoryId || ''));
+  }
+
+  if (options.registrarId) {
+    domains = domains.filter(domain => domain.registrarId === options.registrarId);
+  }
+
+  if (options.registrarAccountId) {
+    domains = domains.filter(domain => domain.registrarAccountId === options.registrarAccountId);
+  }
+
+  if (options.search) {
+    const searchTerm = options.search.toLowerCase();
+    domains = domains.filter(domain =>
+      domain.name.toLowerCase().includes(searchTerm) ||
+      domain.notes?.toLowerCase().includes(searchTerm) ||
+      domain.whoisData?.registrantName?.toLowerCase().includes(searchTerm) ||
+      domain.whoisData?.registrantEmail?.toLowerCase().includes(searchTerm) ||
+      domain.categoryIds?.some(categoryId => categoryId.toLowerCase().includes(searchTerm)) === true
     );
   }
-  
-  return filteredDomains;
-};
 
-export const getDomainById = (id: string): Domain | undefined => {
-  const domain = getDomainStore().find(d => d.id === id);
-  if (!domain) return undefined;
-  return updateDomainStatus(domain);
-};
-
-export const addDomain = async (domainData: Omit<Domain, 'id' | 'createdAt' | 'updatedAt' | 'daysUntilExpiration'>): Promise<Domain> => {
-  // If registration and expiration dates are not provided or empty, fetch them from WHOIS
-  let registrationDate = domainData.registrationDate;
-  let expirationDate = domainData.expirationDate;
-  let whoisData = domainData.whoisData || {};
-  
-  console.log("Adding domain with initial data:", { name: domainData.name, regDate: registrationDate, expDate: expirationDate });
-  
-  try {
-    // Fetch WHOIS data if registration or expiration dates are empty
-    if (!registrationDate || !expirationDate || registrationDate === '' || expirationDate === '') {
-      console.log(`Fetching WHOIS data for ${domainData.name}`);
-      const whoisDates = await fetchWhoisData(domainData.name);
-      
-      // Use fetched dates if not provided or empty
-      registrationDate = (!registrationDate || registrationDate === '') ? whoisDates.registrationDate : registrationDate;
-      expirationDate = (!expirationDate || expirationDate === '') ? whoisDates.expirationDate : expirationDate;
-      
-      console.log(`WHOIS data applied: reg=${registrationDate}, exp=${expirationDate}`);
-      
-      // Update WHOIS data
-      whoisData = {
-        ...whoisData,
-        lastRefreshed: new Date().toISOString(),
-        expirationDate: expirationDate,
-        // Add some mock registrar data for demonstration
-        registrar: ['GoDaddy', 'Namecheap', 'Cloudflare', 'Hover', 'NameSilo'][Math.floor(Math.random() * 5)]
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching WHOIS data:', error);
-    // If WHOIS fetch fails, use default dates
-    if (!registrationDate || registrationDate === '') {
-      const today = new Date();
-      registrationDate = today.toISOString().split('T')[0];
-    }
-    
-    if (!expirationDate || expirationDate === '') {
-      const oneYearLater = new Date();
-      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-      expirationDate = oneYearLater.toISOString().split('T')[0];
-    }
-  }
-  
-  const daysUntil = calculateDaysUntilExpiration(expirationDate);
-  const status = determineDomainStatus(daysUntil);
-  
-  const newDomain: Domain = {
-    id: uuidv4(),
-    ...domainData,
-    registrationDate,
-    expirationDate,
-    status,
-    whoisData,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    daysUntilExpiration: daysUntil,
-    price: domainData.price || 0,
-    currency: domainData.currency || 'USD'
-  };
-  
-  console.log("Final domain being added:", { 
-    name: newDomain.name, 
-    regDate: newDomain.registrationDate, 
-    expDate: newDomain.expirationDate,
-    daysUntil: newDomain.daysUntilExpiration
-  });
-  
-  const domains = getDomainStore();
-  setDomainStore([...domains, newDomain]);
-  
-  return newDomain;
-};
-
-export const updateDomain = (id: string, domainData: Partial<Omit<Domain, 'id' | 'createdAt' | 'updatedAt' | 'daysUntilExpiration'>>): Domain => {
-  const domains = getDomainStore();
-  const index = domains.findIndex(d => d.id === id);
-  
-  if (index === -1) {
-    throw new Error(`Domain with ID ${id} not found`);
-  }
-  
-  const updatedDomain = {
-    ...domains[index],
-    ...domainData,
-    updatedAt: new Date().toISOString()
-  };
-  
-  // Recalculate days until expiration and status if expiration date changes
-  if (domainData.expirationDate) {
-    const daysUntil = calculateDaysUntilExpiration(domainData.expirationDate);
-    updatedDomain.daysUntilExpiration = daysUntil;
-    
-    // Only update status if it's not a manual override
-    if (!domainData.status && updatedDomain.status !== 'trash') {
-      updatedDomain.status = determineDomainStatus(daysUntil);
-    }
-  }
-  
-  // Update the domains array
-  const updatedDomains = [...domains];
-  updatedDomains[index] = updatedDomain;
-  setDomainStore(updatedDomains);
-  
-  return getDomainById(id) as Domain;
-};
-
-export const deleteDomain = (id: string): void => {
-  const domains = getDomainStore();
-  const index = domains.findIndex(d => d.id === id);
-  
-  if (index === -1) {
-    throw new Error(`Domain with ID ${id} not found`);
-  }
-  
-  // Soft delete - move to trash
-  const updatedDomains = [...domains];
-  updatedDomains[index] = {
-    ...domains[index],
-    status: 'trash',
-    updatedAt: new Date().toISOString()
-  };
-  
-  setDomainStore(updatedDomains);
-};
-
-export const permanentlyDeleteDomain = (id: string): void => {
-  const domains = getDomainStore();
-  const index = domains.findIndex(d => d.id === id);
-  
-  if (index === -1) {
-    throw new Error(`Domain with ID ${id} not found`);
-  }
-  
-  // Check if domain is in trash
-  if (domains[index].status !== 'trash') {
-    throw new Error(`Domain must be in trash before permanent deletion`);
-  }
-  
-  // Hard delete
-  const updatedDomains = [...domains];
-  updatedDomains.splice(index, 1);
-  setDomainStore(updatedDomains);
-};
-
-export const restoreDomain = (id: string): Domain => {
-  const domains = getDomainStore();
-  const index = domains.findIndex(d => d.id === id);
-  
-  if (index === -1) {
-    throw new Error(`Domain with ID ${id} not found`);
-  }
-  
-  // Check if domain is in trash
-  if (domains[index].status !== 'trash') {
-    throw new Error(`Only domains in trash can be restored`);
-  }
-  
-  // Calculate new status
-  const daysUntil = calculateDaysUntilExpiration(domains[index].expirationDate);
-  const status = determineDomainStatus(daysUntil);
-  
-  // Update domain
-  const updatedDomains = [...domains];
-  updatedDomains[index] = {
-    ...domains[index],
-    status,
-    updatedAt: new Date().toISOString()
-  };
-  
-  setDomainStore(updatedDomains);
-  
-  return getDomainById(id) as Domain;
-};
-
-export const getDomainStats = (): DomainStats => {
-  return getStats();
-};
-
-export const refreshWhoisData = async (id: string): Promise<Domain> => {
-  const domain = getDomainById(id);
-  
-  if (!domain) {
-    throw new Error(`Domain with ID ${id} not found`);
-  }
-  
-  // Fetch fresh WHOIS data
-  const whoisData = await refreshWhois(domain);
-  
-  // Update the domain with refreshed data
-  const updatedDomain = {
+  // Calculate and update daysUntilExpiration for each domain
+  domains = domains.map(domain => ({
     ...domain,
-    registrationDate: whoisData.creationDate,
-    expirationDate: whoisData.registryExpiryDate,
-    whoisData: {
-      ...(domain.whoisData || {}),
-      lastRefreshed: new Date().toISOString(),
-      registrar: domain.whoisData?.registrar || 'GoDaddy',
-      expirationDate: whoisData.registryExpiryDate,
-      registrantName: domain.whoisData?.registrantName || 'Domain Owner',
-      registrantEmail: domain.whoisData?.registrantEmail || 'owner@example.com'
-    },
-    updatedAt: new Date().toISOString()
+    daysUntilExpiration: calculateDaysUntilExpiration(domain.expirationDate)
+  }));
+
+  // Apply sorting
+  if (options.sortBy) {
+    const sortBy = options.sortBy;
+    const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
+
+    if (options.customSort) {
+      domains.sort((a, b) => options.customSort!(a, b) * sortOrder);
+    } else {
+      domains.sort((a, b) => {
+        const valueA = a[sortBy];
+        const valueB = b[sortBy];
+
+        if (valueA === undefined || valueB === undefined) {
+          return 0;
+        }
+
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          return valueA.localeCompare(valueB) * sortOrder;
+        } else if (typeof valueA === 'number' && typeof valueB === 'number') {
+          return (valueA - valueB) * sortOrder;
+        } else {
+          return 0;
+        }
+      });
+    }
+  }
+
+  return domains;
+};
+
+// Function to get a single domain by ID
+export const getDomainById = (id: string): Domain | undefined => {
+  initializeDomains();
+  const domains = getDomainsStore();
+  return domains.find(domain => domain.id === id);
+};
+
+// Function to add a new domain
+export const addDomain = (domain: Domain): void => {
+  initializeDomains();
+  const domains = getDomainsStore();
+  saveDomainsStore([...domains, domain]);
+};
+
+// Function to update an existing domain
+export const updateDomain = (id: string, data: Partial<Domain>): void => {
+  initializeDomains();
+  const domains = getDomainsStore();
+  const updatedDomains = domains.map(domain =>
+    domain.id === id ? { ...domain, ...data } : domain
+  );
+  saveDomainsStore(updatedDomains);
+};
+
+// Function to delete a domain (move to trash)
+export const deleteDomain = (id: string): void => {
+  updateDomain(id, { status: 'trash' });
+};
+
+// Function to restore a domain from trash
+export const restoreDomain = (id: string): void => {
+  updateDomain(id, { status: 'active' });
+};
+
+// Function to permanently delete a domain
+export const permanentlyDeleteDomain = (id: string): void => {
+  initializeDomains();
+  let domains = getDomainsStore();
+  domains = domains.filter(domain => domain.id !== id);
+  saveDomainsStore(domains);
+};
+
+// Function to generate mock WHOIS data
+const generateMockWhoisData = (domainName: string): WhoisData => {
+  const now = new Date();
+  return {
+    domainName: domainName,
+    registrar: 'Mock Registrar',
+    registrantName: 'Mock Registrant',
+    registrantEmail: 'registrant@example.com',
+    creationDate: now.toISOString(),
+    expirationDate: new Date(now.setDate(now.getDate() + 365)).toISOString(),
+    lastRefreshed: now.toISOString(),
   };
-  
-  // Recalculate days until expiration
-  const daysUntil = calculateDaysUntilExpiration(updatedDomain.expirationDate);
-  updatedDomain.daysUntilExpiration = daysUntil;
-  
-  // Update status based on new expiration date if not in trash
-  if (updatedDomain.status !== 'trash') {
-    updatedDomain.status = determineDomainStatus(daysUntil);
-  }
-  
-  console.log(`Updated WHOIS data: reg=${updatedDomain.registrationDate}, exp=${updatedDomain.expirationDate}, days=${daysUntil}`);
-  
-  updateDomain(id, updatedDomain);
-  
-  return getDomainById(id) as Domain;
 };
 
-export const getSoldDomains = (): SoldDomain[] => {
-  return getSoldDomainsStore();
-};
-
-export const markDomainAsSold = (
-  id: string, 
-  saleData: { 
-    salePrice: number, 
-    saleDate: string, 
-    purchasePrice: number, 
-    buyer?: string, 
-    saleNotes?: string 
-  }
-): SoldDomain => {
+// Function to refresh WHOIS data for a domain
+export const refreshWhoisData = async (id: string): Promise<void> => {
+  await sleep(1500); // Simulate API delay
   const domain = getDomainById(id);
-  
+  if (domain) {
+    const mockWhoisData = generateMockWhoisData(domain.name);
+    updateDomain(id, { whoisData: mockWhoisData });
+  } else {
+    throw new Error(`Domain with ID ${id} not found`);
+  }
+};
+
+// Function to mark a domain as sold
+export const markDomainAsSold = (id: string, saleDetails: Omit<SoldDomain, 'id' | 'name' | 'categoryId' | 'categoryIds' | 'registrarId' | 'registrarAccountId' | 'registrationDate' | 'expirationDate' | 'status' | 'notes' | 'whoisData' | 'createdAt' | 'updatedAt' | 'daysUntilExpiration' | 'autoRenew' | 'tld'>): void => {
+  initializeDomains();
+  initializeSoldDomains();
+
+  const domain = getDomainById(id);
   if (!domain) {
     throw new Error(`Domain with ID ${id} not found`);
   }
-  
-  if (domain.status === 'trash') {
-    throw new Error(`Cannot mark a domain in trash as sold`);
-  }
-  
-  // Calculate ROI
-  const roi = ((saleData.salePrice - saleData.purchasePrice) / saleData.purchasePrice) * 100;
-  
-  // Create sold domain record - preserve the original currency
+
+  // Basic ROI calculation
+  const roi = ((saleDetails.salePrice - saleDetails.purchasePrice) / saleDetails.purchasePrice) * 100;
+
   const soldDomain: SoldDomain = {
     ...domain,
     status: 'sold',
-    saleDate: saleData.saleDate,
-    salePrice: saleData.salePrice,
-    purchasePrice: saleData.purchasePrice,
-    roi,
-    buyer: saleData.buyer,
-    saleNotes: saleData.saleNotes,
-    updatedAt: new Date().toISOString(),
-    // Make sure to preserve the currency
-    currency: domain.currency || 'USD'
+    saleDate: saleDetails.saleDate,
+    salePrice: saleDetails.salePrice,
+    purchasePrice: saleDetails.purchasePrice,
+    roi: roi,
+    buyer: saleDetails.buyer,
+    marketplace: saleDetails.marketplace,
+    saleNotes: saleDetails.saleNotes,
   };
-  
-  // Add to sold domains
-  const soldDomains = getSoldDomainsStore();
-  setSoldDomainsStore([...soldDomains, soldDomain]);
-  
-  // Remove from active domains
-  deleteDomain(id);
-  
-  return soldDomain;
+
+  // Remove from domains and add to sold domains
+  let domains = getDomainsStore();
+  domains = domains.filter(domain => domain.id !== id);
+  saveDomainsStore(domains);
+
+  let soldDomains = getSoldDomainsStore();
+  soldDomains.push(soldDomain);
+  saveSoldDomainsStore(soldDomains);
 };
 
-export const deleteSoldDomain = (id: string) => {
-  const soldDomains = getSoldDomainsStore();
-  const updatedSoldDomains = soldDomains.filter(domain => domain.id !== id);
-  setSoldDomainsStore(updatedSoldDomains);
-  return true;
-};
-
-export const updateSoldDomain = (id: string, data: Partial<SoldDomain>): SoldDomain => {
+// Function to update sold domain details
+export const updateSoldDomain = (id: string, data: Partial<SoldDomain>): Promise<SoldDomain> => {
   const soldDomains = getSoldDomainsStore();
   const index = soldDomains.findIndex(domain => domain.id === id);
   
   if (index === -1) {
-    throw new Error(`Sold domain with ID ${id} not found`);
+    return Promise.reject(new Error(`Domain with ID ${id} not found`));
   }
   
-  const updatedDomain = {
-    ...soldDomains[index],
-    ...data,
-    updatedAt: new Date().toISOString()
+  const updatedDomain = { ...soldDomains[index], ...data };
+  soldDomains[index] = updatedDomain;
+  localStorage.setItem('soldDomains', JSON.stringify(soldDomains));
+  
+  return Promise.resolve(updatedDomain);
+};
+
+// Function to get sold domains
+export const getSoldDomains = (): SoldDomain[] => {
+  initializeSoldDomains();
+  return getSoldDomainsStore();
+};
+
+// Function to delete a sold domain (permanently)
+export const deleteSoldDomain = (id: string): void => {
+  initializeSoldDomains();
+  let soldDomains = getSoldDomainsStore();
+  soldDomains = soldDomains.filter(domain => domain.id !== id);
+  saveSoldDomainsStore(soldDomains);
+};
+
+// Function to get domain statistics
+export const getDomainStats = (): any => {
+  initializeDomains();
+  const domains = getDomainsStore();
+
+  const total = domains.length;
+  const active = domains.filter(domain => domain.status === 'active').length;
+  const expiring = domains.filter(domain => domain.status === 'expiring').length;
+  const expired = domains.filter(domain => domain.status === 'expired').length;
+  const trash = domains.filter(domain => domain.status === 'trash').length;
+
+  const soldDomains = getSoldDomains();
+  const totalSold = soldDomains.length;
+  const totalRevenue = soldDomains.reduce((sum, domain) => sum + (domain.salePrice || 0), 0);
+
+  return {
+    total,
+    active,
+    expiring,
+    expired,
+    trash,
+    totalSold,
+    totalRevenue
   };
-  
-  const updatedSoldDomains = [...soldDomains];
-  updatedSoldDomains[index] = updatedDomain;
-  
-  setSoldDomainsStore(updatedSoldDomains);
-  return updatedDomain;
+};
+
+// Function to check domain availability
+export const checkDomainAvailability = async (domainName: string): Promise<boolean> => {
+  await sleep(500); // Simulate API delay
+  // Basic validation to prevent abuse
+  if (!domainName || domainName.length > 253 || !/^[a-z0-9-.]+$/.test(domainName)) {
+    throw new Error('Invalid domain name');
+  }
+
+  const domains = getDomainsStore();
+  const isAvailable = !domains.some(domain => domain.name === domainName);
+  return isAvailable;
+};
+
+// Function to perform bulk domain availability check
+export const bulkCheckAvailability = async (domainNames: string[]): Promise<{ domain: string; available: boolean; error?: string }[]> => {
+  await sleep(500); // Simulate API delay
+  return Promise.all(domainNames.map(async (domainName) => {
+    try {
+      const available = await checkDomainAvailability(domainName);
+      return { domain: domainName, available };
+    } catch (error: any) {
+      return { domain: domainName, available: false, error: error.message };
+    }
+  }));
+};
+
+// Function to fetch WHOIS data (mock implementation)
+export const fetchWhoisData = async (domainName: string): Promise<WhoisData> => {
+  await sleep(1000); // Simulate API delay
+  // Simulate API response based on domain name
+  if (domainName.includes('unavailable')) {
+    throw new Error('WHOIS data not found for this domain.');
+  }
+  return generateMockWhoisData(domainName);
 };

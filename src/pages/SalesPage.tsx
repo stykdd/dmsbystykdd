@@ -293,15 +293,16 @@ const SalesPage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['soldDomains'] });
+      setIsEditDialogOpen(false);
       toast({
-        title: "Domain updated",
-        description: "The domain has been successfully updated.",
+        title: "Domain Updated",
+        description: "Domain sale details have been updated.",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update the domain.",
+        description: `Failed to update domain: ${error.message}`,
         variant: "destructive",
       });
     }
