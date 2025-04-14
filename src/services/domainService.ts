@@ -345,7 +345,7 @@ export const deleteSoldDomain = (id: string) => {
   return true;
 };
 
-export const updateSoldDomain = (id: string, data: Partial<SoldDomain>) => {
+export const updateSoldDomain = (id: string, data: Partial<SoldDomain>): SoldDomain => {
   const soldDomains = getSoldDomainsStore();
   const index = soldDomains.findIndex(domain => domain.id === id);
   

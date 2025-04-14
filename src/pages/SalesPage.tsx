@@ -19,7 +19,7 @@ import {
 import { DollarSign, ArrowUp, ArrowDown, Tag, Euro, CreditCard, Edit, Trash2, ArrowLeft, Globe, Filter, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSoldDomains, deleteSoldDomain, updateSoldDomain } from '@/services/domainService';
-import { Currency, Domain, SoldDomain } from '@/types/domain';
+import { Currency, SoldDomain } from '@/types/domain';
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -250,7 +250,7 @@ const SalesPage = () => {
   const [editingDomain, setEditingDomain] = useState<SoldDomain | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{
-    key: 'name' | 'saleDate' | 'salePrice' | 'roi';
+    key: keyof SoldDomain;
     direction: 'asc' | 'desc';
   }>({
     key: 'saleDate',
@@ -264,7 +264,7 @@ const SalesPage = () => {
 
   const { data: allDomains = [], isLoading: isDomainsLoading } = useQuery({
     queryKey: ['domains'],
-    queryFn: () => getSoldDomains()
+    queryFn: getSoldDomains
   });
 
   const deleteMutation = useMutation({
@@ -289,7 +289,7 @@ const SalesPage = () => {
 
   const updateMutation = useMutation({
     mutationFn: (domain: SoldDomain) => {
-      return updateSoldDomain(domain);
+      return updateSoldDomain(domain.id, domain);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['soldDomains'] });
@@ -357,7 +357,7 @@ const SalesPage = () => {
     return sortableItems;
   }, [filteredDomains, sortConfig]);
 
-  const requestSort = (key: 'name' | 'saleDate' | 'salePrice' | 'roi') => {
+  const requestSort = (key: keyof SoldDomain) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
