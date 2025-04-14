@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Shield } from 'lucide-react';
 import {
@@ -21,7 +22,6 @@ import StatsCards from "@/components/admin/StatsCards";
 import UserImpersonation from "@/components/admin/UserImpersonation";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 import DataManager from "@/components/admin/DataManager";
-import DonationSettings from "@/components/admin/DonationSettings";
 
 // Mock roles initial state
 const initialRoles = [
@@ -64,7 +64,6 @@ const AdminPage: React.FC = () => {
           <TabsTrigger value="roles">Role Management</TabsTrigger>
           <TabsTrigger value="tools">User Impersonation</TabsTrigger>
           <TabsTrigger value="data">Data Management</TabsTrigger>
-          <TabsTrigger value="donation">Donation</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
@@ -149,10 +148,6 @@ const AdminPage: React.FC = () => {
               <DataManager />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="donation">
-          <DonationSettings />
         </TabsContent>
       </Tabs>
       
