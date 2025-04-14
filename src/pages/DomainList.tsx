@@ -4,16 +4,20 @@ import {
   Search, 
   PlusCircle, 
   Filter,
-  ArrowLeft,
+  ArrowUpDown,
+  MoreHorizontal,
   Trash2,
   Edit,
+  Eye,
   RefreshCw,
   Tags,
   Globe,
   User,
   Loader2,
   AlertOctagon,
-  DollarSign
+  DollarSign,
+  Euro,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +36,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  SortableHeader
 } from "@/components/ui/table";
 import { 
   Select,
@@ -52,7 +55,7 @@ import {
 import { getRegistrars, getRegistrarAccounts } from '../services/registrarService';
 import { getCategories } from '../services/categoryService';
 import { Domain, DomainFilterOptions, DomainStatus, Registrar, RegistrarAccount, DomainCategory, Currency } from '../types/domain';
-import { formatDate } from '@/lib/date-utils';
+import { formatDate, formatDateWithTime } from '@/lib/date-utils';
 import {
   Dialog,
   DialogContent,
@@ -60,12 +63,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+
+//const statusOptions = [
+//  { value: 'all', label: 'All Statuses' },
+//  { value: 'active', label: 'Active' },
+//  { value: 'expiring', label: 'Expiring Soon' },
+//  { value: 'sold', label: 'Sold' },
+//];
 
 const currencySymbols: Record<Currency, string> = {
   USD: '$',
@@ -81,6 +92,14 @@ const formatCurrency = (amount?: number, currency?: Currency) => {
   return `${currencySymbols[currencyCode]} ${amount.toLocaleString()}`;
 };
 
+const TLD_CATEGORIES = {
+  gTLDs: ['.com', '.org', '.net', '.info', '.biz', '.app', '.dev', '.io'],
+  ccTLDs: ['.us', '.uk', '.ca', '.au', '.de', '.fr', '.es', '.it'],
+  newTLDs: ['.blog', '.shop', '.site', '.store', '.online', '.tech']
+};
+
+const COMMON_TLDS = ['.com', '.org', '.net', '.io', '.co', '.app', '.dev'];
+
 const DomainList: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -90,11 +109,12 @@ const DomainList: React.FC = () => {
   const [registrarAccounts, setRegistrarAccounts] = useState<RegistrarAccount[]>([]);
   const [categories, setCategories] = useState<DomainCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  //const [statusFilter, setStatusFilter] = useState<string>('all');
   const [registrarFilter, setRegistrarFilter] = useState<string>('all');
   const [accountFilter, setAccountFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const [sortBy, setSortBy] = useState<keyof Domain | 'tld'>('name');
+  const [sortBy, setSortBy] = useState<keyof Domain>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [refreshing, setRefreshing] = useState<Record<string, boolean>>({});
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
@@ -139,11 +159,12 @@ const DomainList: React.FC = () => {
 
     const filters: DomainFilterOptions = {
       search: searchQuery,
-      sortBy: sortBy === 'tld' ? 'name' : sortBy as keyof Domain,
+      sortBy: sortBy === 'tld' ? 'name' : sortBy,
       sortOrder,
       excludeTrash: true
     };
 
+    // Custom sorting for TLD
     if (sortBy === 'tld') {
       const getTld = (domain: string) => domain.substring(domain.lastIndexOf('.'));
       filters.customSort = (a, b) => {
@@ -154,6 +175,7 @@ const DomainList: React.FC = () => {
           tldB.localeCompare(tldA);
       };
     }
+
 
     if (registrarFilter !== 'all') {
       filters.registrarId = registrarFilter;
@@ -169,6 +191,10 @@ const DomainList: React.FC = () => {
 
     let domainData = getDomains(filters);
 
+    //if (statusFilter !== 'expired') {
+    //  domainData = domainData.filter(domain => domain.status !== 'expired');
+    //}
+
     if (tldFilter !== 'all') {
       domainData = domainData.filter(domain => 
         domain.name.toLowerCase().endsWith(tldFilter.toLowerCase())
@@ -177,9 +203,9 @@ const DomainList: React.FC = () => {
 
     setDomains(domainData);
     setIsLoading(false);
-  }, [searchQuery, registrarFilter, accountFilter, categoryFilter, tldFilter, sortBy, sortOrder]);
+  }, [searchQuery, registrarFilter, accountFilter, categoryFilter, sortBy, sortOrder]);
 
-  const handleSort = (column: keyof Domain | 'tld') => {
+  const handleSort = (column: keyof Domain) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -394,6 +420,28 @@ const DomainList: React.FC = () => {
           />
         </div>
 
+        {/* Removed Status Filter */}
+        {/*
+        <div className="flex-shrink-0">
+          <Select
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+          >
+            <SelectTrigger className="w-[160px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        */}
+
         {registrars.length > 0 && (
           <div className="w-full sm:w-auto">
             <Select
@@ -490,53 +538,37 @@ const DomainList: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="cursor-pointer">
-                <SortableHeader<Domain>
-                  column="name"
-                  label="Domain Name"
-                  currentSortColumn={sortBy}
-                  currentSortDirection={sortOrder}
-                  onSort={handleSort}
-                />
+              <TableHead 
+                className="cursor-pointer"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center">
+                  Domain Name
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </div>
               </TableHead>
-              <TableHead className="cursor-pointer w-[100px]">
-                <SortableHeader<Domain>
-                  column="tld"
-                  label="TLD"
-                  currentSortColumn={sortBy}
-                  currentSortDirection={sortOrder}
-                  onSort={handleSort}
-                />
+              <TableHead 
+                className="cursor-pointer w-[100px]"
+                onClick={() => handleSort('tld')}
+              >
+                <div className="flex items-center">
+                  TLD
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </div>
               </TableHead>
-              <TableHead className="cursor-pointer">
-                <SortableHeader<Domain>
-                  column="expirationDate"
-                  label="Expiration Date"
-                  currentSortColumn={sortBy}
-                  currentSortDirection={sortOrder}
-                  onSort={handleSort}
-                />
+              <TableHead 
+                className="cursor-pointer"
+                onClick={() => handleSort('expirationDate')}
+              >
+                <div className="flex items-center">
+                  Expiration Date
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </div>
               </TableHead>
               <TableHead>Account</TableHead>
               <TableHead>Categories</TableHead>
-              <TableHead className="cursor-pointer">
-                <SortableHeader<Domain>
-                  column="price"
-                  label="Price"
-                  currentSortColumn={sortBy}
-                  currentSortDirection={sortOrder}
-                  onSort={handleSort}
-                />
-              </TableHead>
-              <TableHead className="cursor-pointer">
-                <SortableHeader<Domain>
-                  column="daysUntilExpiration"
-                  label="Days Left"
-                  currentSortColumn={sortBy}
-                  currentSortDirection={sortOrder}
-                  onSort={handleSort}
-                />
-              </TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Days Left</TableHead>
               <TableHead>WHOIS Last Refresh</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -544,13 +576,13 @@ const DomainList: React.FC = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-4">
+                <TableCell colSpan={8} className="text-center py-4">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : domains.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-4">
+                <TableCell colSpan={8} className="text-center py-4">
                   No domains found
                 </TableCell>
               </TableRow>

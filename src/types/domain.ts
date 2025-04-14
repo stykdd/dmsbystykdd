@@ -1,27 +1,27 @@
 
-export type DomainStatus = 'active' | 'expiring' | 'expired' | 'pending' | 'trash' | 'sold';
+export type DomainStatus = 'active' | 'expiring' | 'expired' | 'trash' | 'sold';
 export type Currency = 'USD' | 'EUR' | 'MAD';
 
 export interface Domain {
   id: string;
   name: string;
-  categoryId?: string;
-  categoryIds?: string[];
-  registrarId?: string;
-  registrarAccountId?: string;
   registrationDate: string;
   expirationDate: string;
   status: DomainStatus;
-  notes?: string;
-  whoisData?: WhoisData;
+  registrarAccountId?: string;
+  categoryIds?: string[];
   createdAt: string;
   updatedAt: string;
   daysUntilExpiration: number;
-  autoRenew?: boolean;
   price?: number;
   currency?: Currency;
-  marketplace?: string;
-  tld?: string; // Add this to make sorting by TLD possible
+  whoisData?: {
+    registrar?: string;
+    lastRefreshed?: string;
+    expirationDate?: string;
+    registrantName?: string;
+    registrantEmail?: string;
+  };
 }
 
 export interface SoldDomain extends Domain {
@@ -31,8 +31,27 @@ export interface SoldDomain extends Domain {
   purchasePrice: number;
   roi: number;
   buyer?: string;
-  marketplace?: string;
   saleNotes?: string;
+}
+
+export interface Registrar {
+  id: string;
+  name: string;
+  website?: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegistrarAccount {
+  id: string;
+  name: string;
+  registrarId: string;
+  username: string;
+  password?: string;
+  apiKey?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DomainCategory {
@@ -44,65 +63,29 @@ export interface DomainCategory {
   updatedAt: string;
 }
 
-export interface Registrar {
-  id: string;
-  name: string;
-  website: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface RegistrarAccount {
-  id: string;
-  registrarId: string;
-  name: string;
-  username: string;
-  password?: string;
-  apiKey?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface WhoisData {
-  domainName?: string;
-  registrar?: string;
-  registrantName?: string;
-  registrantEmail?: string;
-  creationDate?: string;
-  expirationDate?: string;
-  lastRefreshed?: string;
-}
-
 export interface DomainFilterOptions {
-  status?: DomainStatus | 'any';
+  search?: string;
+  status?: DomainStatus;
+  registrarAccountId?: string;
+  registrarId?: string; 
   categoryId?: string;
-  searchTerm?: string;
-  sortBy?: keyof Domain | 'tld';
+  sortBy?: keyof Domain;
   sortOrder?: 'asc' | 'desc';
-  customSort?: (a: Domain, b: Domain) => number;
   excludeTrash?: boolean;
-  search?: string; // Add this property
-  registrarId?: string; // Add this property
-  registrarAccountId?: string; // Add this property
 }
 
 export interface DomainStats {
-  totalDomains: number;
-  activeDomains: number;
-  expiringSoon: number;
-  expiredDomains: number;
-  domainsInTrash: number;
-  total?: number; // Add this property 
-  expiring?: number; // Add this property
-  expired?: number; // Add this property
-  trash?: number; // Add this property
-  totalSold?: number; // Add this property
-  totalRevenue?: number; // Add this property
+  total: number;
+  active: number;
+  expiring: number;
+  expired: number;
+  trash: number;
+  totalSold?: number;
+  totalRevenue?: number;
 }
 
 export interface BulkCheckResult {
   domain: string;
   available: boolean;
-  error?: string; // Add this property
+  error?: string;
 }
