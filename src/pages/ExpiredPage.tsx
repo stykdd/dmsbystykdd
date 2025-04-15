@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -30,6 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDomains, deleteDomain } from '../services/domainService';
 import { Domain } from '../types/domain';
 import { formatDate } from '@/lib/date-utils';
+import { SortableTableHeader } from '@/components/ui/sortable-table-header';
 
 const ExpiredPage: React.FC = () => {
   const { toast } = useToast();
@@ -116,6 +116,16 @@ const ExpiredPage: React.FC = () => {
     loadExpiredDomains();
   };
 
+  const renderSortableHeader = (column: keyof Domain | 'tld', label: string) => (
+    <SortableTableHeader
+      isActive={sortBy === column}
+      direction={sortOrder}
+      onClick={() => handleSort(column)}
+    >
+      {label}
+    </SortableTableHeader>
+  );
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -187,42 +197,10 @@ const ExpiredPage: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('name')}
-              >
-                <div className="flex items-center">
-                  Domain Name
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('tld')}
-              >
-                <div className="flex items-center">
-                  TLD
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('expirationDate')}
-              >
-                <div className="flex items-center">
-                  Expiration Date
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('daysUntilExpiration')}
-              >
-                <div className="flex items-center">
-                  Days Overdue
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
-              </TableHead>
+              {renderSortableHeader('name', 'Domain Name')}
+              {renderSortableHeader('tld', 'TLD')}
+              {renderSortableHeader('expirationDate', 'Expiration Date')}
+              {renderSortableHeader('daysUntilExpiration', 'Days Overdue')}
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>

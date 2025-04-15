@@ -70,13 +70,14 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { SortableTableHeader } from '@/components/ui/sortable-table-header';
 
-//const statusOptions = [
-//  { value: 'all', label: 'All Statuses' },
-//  { value: 'active', label: 'Active' },
-//  { value: 'expiring', label: 'Expiring Soon' },
-//  { value: 'sold', label: 'Sold' },
-//];
+const statusOptions = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'active', label: 'Active' },
+  { value: 'expiring', label: 'Expiring Soon' },
+  { value: 'sold', label: 'Sold' },
+];
 
 const currencySymbols: Record<Currency, string> = {
   USD: '$',
@@ -109,7 +110,6 @@ const DomainList: React.FC = () => {
   const [registrarAccounts, setRegistrarAccounts] = useState<RegistrarAccount[]>([]);
   const [categories, setCategories] = useState<DomainCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  //const [statusFilter, setStatusFilter] = useState<string>('all');
   const [registrarFilter, setRegistrarFilter] = useState<string>('all');
   const [accountFilter, setAccountFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -164,7 +164,6 @@ const DomainList: React.FC = () => {
       excludeTrash: true
     };
 
-    // Custom sorting for TLD
     if (sortBy === 'tld') {
       const getTld = (domain: string) => domain.substring(domain.lastIndexOf('.'));
       filters.customSort = (a, b) => {
@@ -175,7 +174,6 @@ const DomainList: React.FC = () => {
           tldB.localeCompare(tldA);
       };
     }
-
 
     if (registrarFilter !== 'all') {
       filters.registrarId = registrarFilter;
@@ -190,10 +188,6 @@ const DomainList: React.FC = () => {
     }
 
     let domainData = getDomains(filters);
-
-    //if (statusFilter !== 'expired') {
-    //  domainData = domainData.filter(domain => domain.status !== 'expired');
-    //}
 
     if (tldFilter !== 'all') {
       domainData = domainData.filter(domain => 
@@ -377,6 +371,16 @@ const DomainList: React.FC = () => {
     return registrarAccounts;
   };
 
+  const renderSortableHeader = (column: keyof Domain | 'tld', label: string) => (
+    <SortableTableHeader
+      isActive={sortBy === column}
+      direction={sortOrder}
+      onClick={() => handleSort(column)}
+    >
+      {label}
+    </SortableTableHeader>
+  );
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -420,96 +424,68 @@ const DomainList: React.FC = () => {
           />
         </div>
 
-        {/* Removed Status Filter */}
-        {/*
         <div className="flex-shrink-0">
           <Select
-            value={statusFilter}
-            onValueChange={setStatusFilter}
+            value={registrarFilter}
+            onValueChange={(value) => {
+              setRegistrarFilter(value);
+              setAccountFilter('all');
+            }}
           >
-            <SelectTrigger className="w-[160px]">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Status" />
+            <SelectTrigger className="w-[180px]">
+              <Globe className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Registrar" />
             </SelectTrigger>
             <SelectContent>
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+              <SelectItem value="all">All Registrars</SelectItem>
+              {registrars.map((registrar) => (
+                <SelectItem key={registrar.id} value={registrar.id}>
+                  {registrar.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        */}
 
-        {registrars.length > 0 && (
-          <div className="w-full sm:w-auto">
-            <Select
-              value={registrarFilter}
-              onValueChange={(value) => {
-                setRegistrarFilter(value);
-                setAccountFilter('all');
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <Globe className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Registrar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Registrars</SelectItem>
-                {registrars.map((registrar) => (
-                  <SelectItem key={registrar.id} value={registrar.id}>
-                    {registrar.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="w-full sm:w-auto">
+          <Select
+            value={accountFilter}
+            onValueChange={setAccountFilter}
+          >
+            <SelectTrigger className="w-[180px]">
+              <User className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Account" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Accounts</SelectItem>
+              {getFilteredAccounts().map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  {account.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {registrarAccounts.length > 0 && (
-          <div className="w-full sm:w-auto">
-            <Select
-              value={accountFilter}
-              onValueChange={setAccountFilter}
-            >
-              <SelectTrigger className="w-[180px]">
-                <User className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Account" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Accounts</SelectItem>
-                {getFilteredAccounts().map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {categories.length > 0 && (
-          <div className="w-full sm:w-auto">
-            <Select
-              value={categoryFilter}
-              onValueChange={setCategoryFilter}
-            >
-              <SelectTrigger className="w-[180px]">
-                <Tags className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="w-full sm:w-auto">
+          <Select
+            value={categoryFilter}
+            onValueChange={setCategoryFilter}
+          >
+            <SelectTrigger className="w-[180px]">
+              <Tags className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="w-full sm:w-auto">
           <Select
@@ -538,37 +514,13 @@ const DomainList: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('name')}
-              >
-                <div className="flex items-center">
-                  Domain Name
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer w-[100px]"
-                onClick={() => handleSort('tld')}
-              >
-                <div className="flex items-center">
-                  TLD
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer"
-                onClick={() => handleSort('expirationDate')}
-              >
-                <div className="flex items-center">
-                  Expiration Date
-                  <ArrowUpDown className="ml-2 h-4 w-4" />
-                </div>
-              </TableHead>
+              {renderSortableHeader('name', 'Domain Name')}
+              {renderSortableHeader('tld', 'TLD')}
+              {renderSortableHeader('expirationDate', 'Expiration Date')}
               <TableHead>Account</TableHead>
               <TableHead>Categories</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Days Left</TableHead>
+              {renderSortableHeader('price', 'Price')}
+              {renderSortableHeader('daysUntilExpiration', 'Days Left')}
               <TableHead>WHOIS Last Refresh</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>

@@ -41,6 +41,7 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { SortableTableHeader } from '@/components/ui/sortable-table-header';
 
 const currencySymbols: Record<Currency, string> = {
   USD: '$',
@@ -242,7 +243,7 @@ const EditSoldDomainDialog: React.FC<EditSoldDomainDialogProps> = ({
   );
 };
 
-const SalesPage = () => {
+const SalesPage: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
@@ -375,15 +376,15 @@ const SalesPage = () => {
     return soldDomains.reduce((sum, domain) => sum + domain.roi, 0) / soldDomains.length;
   }, [soldDomains]);
 
-  const renderSortIcon = (columnName: 'name' | 'saleDate' | 'salePrice' | 'roi') => {
-    if (sortConfig.key !== columnName) return null;
-
-    return sortConfig.direction === 'asc' ? (
-      <ArrowUp size={14} className="inline ml-1" />
-    ) : (
-      <ArrowDown size={14} className="inline ml-1" />
-    );
-  };
+  const renderSortableHeader = (column: keyof SoldDomain | 'tld', label: string) => (
+    <SortableTableHeader
+      isActive={sortConfig.key === column}
+      direction={sortConfig.direction}
+      onClick={() => requestSort(column as any)}
+    >
+      {label}
+    </SortableTableHeader>
+  );
 
   const formatCurrency = (amount: number, currency?: Currency) => {
     const currencyCode = currency || 'USD';
@@ -568,36 +569,14 @@ const SalesPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('name')}
-                >
-                  Domain Name {renderSortIcon('name')}
-                </TableHead>
-                <TableHead>
-                  TLD
-                </TableHead>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('saleDate')}
-                >
-                  Sale Date {renderSortIcon('saleDate')}
-                </TableHead>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('salePrice')}
-                >
-                  Sale Price {renderSortIcon('salePrice')}
-                </TableHead>
+                {renderSortableHeader('name', 'Domain Name')}
+                {renderSortableHeader('tld', 'TLD')}
+                {renderSortableHeader('saleDate', 'Sale Date')}
+                {renderSortableHeader('salePrice', 'Sale Price')}
                 <TableHead>Purchase Price</TableHead>
                 <TableHead>Buyer</TableHead>
                 <TableHead>Marketplace</TableHead>
-                <TableHead 
-                  className="cursor-pointer"
-                  onClick={() => requestSort('roi')}
-                >
-                  ROI {renderSortIcon('roi')}
-                </TableHead>
+                {renderSortableHeader('roi', 'ROI')}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
