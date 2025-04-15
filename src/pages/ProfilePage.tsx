@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,9 +10,8 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User, Key } from 'lucide-react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, UserRound, UserCog, UserCheck } from 'lucide-react';
+import { Key, UserRound, UserCog, UserCheck, User as UserIcon } from 'lucide-react';
 
 const profileFormSchema = z.object({
   username: z.string().min(3, {
@@ -39,7 +39,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 const AVATAR_OPTIONS = [
-  { icon: User, label: 'Default User' },
+  { icon: UserIcon, label: 'Default User' },
   { icon: UserRound, label: 'Round User' },
   { icon: UserCog, label: 'User Settings' },
   { icon: UserCheck, label: 'User Check' }
@@ -104,7 +104,7 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <User className="w-6 h-6 text-primary" />
+        <UserIcon className="w-6 h-6 text-primary" />
         <h1 className="text-2xl font-bold">Profile</h1>
       </div>
       
