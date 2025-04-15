@@ -1,4 +1,3 @@
-
 export type DomainStatus = 'active' | 'expiring' | 'expired' | 'trash' | 'sold';
 export type Currency = 'USD' | 'EUR' | 'MAD';
 
@@ -25,13 +24,15 @@ export interface Domain {
 }
 
 export interface SoldDomain extends Domain {
-  status: 'sold';
+  id: string;
+  name: string;
   saleDate: string;
   salePrice: number;
   purchasePrice: number;
   roi: number;
   buyer?: string;
   saleNotes?: string;
+  marketplace?: string;
 }
 
 export interface Registrar {

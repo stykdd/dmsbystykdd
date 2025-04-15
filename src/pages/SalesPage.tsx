@@ -252,7 +252,7 @@ const SalesPage: React.FC = () => {
   const [editingDomain, setEditingDomain] = useState<SoldDomain | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{
-    key: 'name' | 'saleDate' | 'salePrice' | 'roi';
+    key: 'name' | 'saleDate' | 'salePrice' | 'purchasePrice' | 'buyer' | 'roi';
     direction: 'asc' | 'desc';
   }>({
     key: 'saleDate',
@@ -333,29 +333,33 @@ const SalesPage: React.FC = () => {
     const sortableItems = [...filteredDomains];
 
     sortableItems.sort((a, b) => {
-      if (sortConfig.key === 'salePrice' || sortConfig.key === 'roi') {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      } else {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
+      if (sortConfig.key === 'buyer') {
+        const buyerA = a.buyer || '';
+        const buyerB = b.buyer || '';
+        return sortConfig.direction === 'asc' 
+          ? buyerA.localeCompare(buyerB)
+          : buyerB.localeCompare(buyerA);
       }
+      
+      if (sortConfig.key === 'purchasePrice' || sortConfig.key === 'salePrice' || sortConfig.key === 'roi') {
+        return sortConfig.direction === 'asc'
+          ? a[sortConfig.key] - b[sortConfig.key]
+          : b[sortConfig.key] - a[sortConfig.key];
+      }
+      
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
     });
 
     return sortableItems;
   }, [filteredDomains, sortConfig]);
 
-  const requestSort = (key: 'name' | 'saleDate' | 'salePrice' | 'roi') => {
+  const requestSort = (key: 'name' | 'saleDate' | 'salePrice' | 'purchasePrice' | 'buyer' | 'roi') => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
@@ -573,9 +577,9 @@ const SalesPage: React.FC = () => {
                 {renderSortableHeader('tld', 'TLD')}
                 {renderSortableHeader('saleDate', 'Sale Date')}
                 {renderSortableHeader('salePrice', 'Sale Price')}
-                <TableHead>Purchase Price</TableHead>
-                <TableHead>Buyer</TableHead>
-                <TableHead>Marketplace</TableHead>
+                {renderSortableHeader('purchasePrice', 'Purchase Price')}
+                {renderSortableHeader('buyer', 'Buyer')}
+                {renderSortableHeader('marketplace', 'Marketplace')}
                 {renderSortableHeader('roi', 'ROI')}
                 <TableHead>Actions</TableHead>
               </TableRow>
