@@ -6,6 +6,11 @@ export interface User {
   provider?: string;
   isImpersonating?: boolean;
   originalUser?: User;
+  role: string;
+  status: 'Active' | 'Inactive';
+  lastLogin?: string;
+  createdAt: string;
+  allowSignup?: boolean;
 }
 
 export interface AuthContextType {
@@ -16,6 +21,10 @@ export interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   error: string | null;
-  impersonateUser: (userData: User) => void;
-  stopImpersonating: () => void;
+  connectToUserAccount: (userData: User) => void;
+  disconnectFromUserAccount: () => void;
+  toggleSignupStatus: (enabled: boolean) => void;
+  users: User[];
+  addUser: (user: Omit<User, 'id' | 'createdAt'>) => Promise<User>;
+  updateUserStatus: (userId: string, status: 'Active' | 'Inactive') => void;
 }

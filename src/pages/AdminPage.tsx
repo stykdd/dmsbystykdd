@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Users, Bell, Link, UserPlus } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -19,9 +19,12 @@ import SystemLogs from "@/components/admin/SystemLogs";
 import RoleManagement from "@/components/admin/RoleManagement";
 import UserActivityCharts from "@/components/admin/UserActivityCharts";
 import StatsCards from "@/components/admin/StatsCards";
-import UserImpersonation from "@/components/admin/UserImpersonation";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 import DataManager from "@/components/admin/DataManager";
+import UserSignupManager from "@/components/admin/UserSignupManager";
+import UserConnection from "@/components/admin/UserConnection";
+import NotificationManagement from "@/components/admin/NotificationManagement";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Mock roles initial state
 const initialRoles = [
@@ -33,6 +36,7 @@ const initialRoles = [
 
 const AdminPage: React.FC = () => {
   const { addNotification } = useNotifications();
+  const { users } = useAuth();
   const [roles, setRoles] = useState(initialRoles);
   const domains = getDomains();
   
@@ -50,9 +54,9 @@ const AdminPage: React.FC = () => {
       </div>
       
       <StatsCards 
-        userCount={4}
+        userCount={users.length}
         domainCount={domains.length}
-        activeUsers={3}
+        activeUsers={users.filter(u => u.status === 'Active').length}
         systemEvents={5}
       />
       
@@ -62,14 +66,19 @@ const AdminPage: React.FC = () => {
           <TabsTrigger value="domains">User Domains</TabsTrigger>
           <TabsTrigger value="system">System Logs</TabsTrigger>
           <TabsTrigger value="roles">Role Management</TabsTrigger>
-          <TabsTrigger value="tools">User Impersonation</TabsTrigger>
+          <TabsTrigger value="connect">User Connection</TabsTrigger>
+          <TabsTrigger value="signup">Signup Settings</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="data">Data Management</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
           <Card>
             <CardHeader>
-              <CardTitle>User Management</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                User Management
+              </CardTitle>
               <CardDescription>
                 Manage users and their access to the system.
               </CardDescription>
@@ -122,18 +131,16 @@ const AdminPage: React.FC = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="tools">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Impersonation</CardTitle>
-              <CardDescription>
-                Temporarily log in as another user to troubleshoot issues.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UserImpersonation />
-            </CardContent>
-          </Card>
+        <TabsContent value="connect">
+          <UserConnection />
+        </TabsContent>
+        
+        <TabsContent value="signup">
+          <UserSignupManager />
+        </TabsContent>
+        
+        <TabsContent value="notifications">
+          <NotificationManagement />
         </TabsContent>
         
         <TabsContent value="data">

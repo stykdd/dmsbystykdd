@@ -11,33 +11,59 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "./AuthContext";
 
 type NotificationType = 'info' | 'warning' | 'error';
+
+export interface NotificationRecipient {
+  userId: string;
+  read: boolean;
+  readAt?: string;
+}
 
 export interface Notification {
   id: string;
   title: string;
   message: string;
   date: string;
-  read: boolean;
   type: NotificationType;
+  global: boolean;
+  recipients: NotificationRecipient[];
+  createdBy: string;
 }
 
 interface NotificationContextType {
   notifications: Notification[];
+  userNotifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'date' | 'read'>) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'date' | 'recipients' | 'createdBy'> & { recipientIds?: string[] }) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
+  getAllNotifications: () => Notification[];
+  getNotificationStats: () => { total: number, read: number, unread: number };
+  getRecipientStats: (notificationId: string) => { total: number, read: number, unread: number };
 }
 
-// Mock initial notifications
-const initialNotifications: Notification[] = [
-  { id: "1", title: "Domain Expiring Soon", message: "example.com will expire in 7 days", date: "2024-04-05", read: false, type: "warning" },
-  { id: "2", title: "New User Registered", message: "User Mark Johnson has registered", date: "2024-04-04", read: true, type: "info" },
-  { id: "3", title: "System Update", message: "System will be updated on April 10", date: "2024-04-03", read: false, type: "info" },
-  { id: "4", title: "Domain Expired", message: "testdomain.org has expired", date: "2024-04-02", read: true, type: "error" }
-];
+// Storage key for notifications
+const NOTIFICATIONS_STORAGE_KEY = 'dms_notifications';
+
+// Get stored notifications
+const getStoredNotifications = (): Notification[] => {
+  const notificationsJson = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+  if (notificationsJson) {
+    try {
+      return JSON.parse(notificationsJson);
+    } catch (e) {
+      console.error("Error parsing stored notifications:", e);
+    }
+  }
+  return [];
+};
+
+// Save notifications to storage
+const saveNotifications = (notifications: Notification[]) => {
+  localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
+};
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
@@ -50,56 +76,159 @@ export const useNotifications = () => {
 };
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const { user, users } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>(getStoredNotifications());
   const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Update unread count whenever notifications change
-    const count = notifications.filter(notification => !notification.read).length;
-    setUnreadCount(count);
-  }, [notifications]);
+  // Filter notifications for the current user
+  const userNotifications = notifications.filter(notification => 
+    notification.global || notification.recipients.some(r => r.userId === user?.id)
+  );
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'date' | 'read'>) => {
+  useEffect(() => {
+    // Update unread count whenever notifications or user changes
+    if (user) {
+      const count = userNotifications.filter(notification => {
+        const recipient = notification.recipients.find(r => r.userId === user.id);
+        return recipient ? !recipient.read : !notification.global;
+      }).length;
+      
+      setUnreadCount(count);
+    } else {
+      setUnreadCount(0);
+    }
+  }, [notifications, user, userNotifications]);
+
+  const addNotification = (notification: Omit<Notification, 'id' | 'date' | 'recipients' | 'createdBy'> & { recipientIds?: string[] }) => {
+    if (!user) return;
+
+    const isGlobal = !notification.recipientIds || notification.recipientIds.length === 0;
+    
+    // Create recipients list
+    let recipients: NotificationRecipient[] = [];
+    
+    if (isGlobal) {
+      // For global notifications, add all users as recipients
+      recipients = users.map(u => ({
+        userId: u.id,
+        read: false
+      }));
+    } else if (notification.recipientIds) {
+      // For targeted notifications, add only specified recipients
+      recipients = notification.recipientIds.map(userId => ({
+        userId,
+        read: false
+      }));
+    }
+
     const newNotification: Notification = {
-      ...notification,
       id: Date.now().toString(),
-      date: new Date().toISOString().split('T')[0],
-      read: false,
+      title: notification.title,
+      message: notification.message,
+      date: new Date().toISOString(),
+      type: notification.type,
+      global: isGlobal,
+      recipients,
+      createdBy: user.id
     };
 
-    setNotifications(prev => [newNotification, ...prev]);
+    const updatedNotifications = [newNotification, ...notifications];
+    setNotifications(updatedNotifications);
+    saveNotifications(updatedNotifications);
     
-    // Show toast for new notification
-    toast({
-      title: notification.title,
-      description: notification.message,
-      variant: notification.type === 'error' ? 'destructive' : 'default',
-    });
+    // Show toast for new notification if it's for the current user
+    if (isGlobal || notification.recipientIds?.includes(user.id)) {
+      toast({
+        title: notification.title,
+        description: notification.message,
+        variant: notification.type === 'error' ? 'destructive' : 'default',
+      });
+    }
   };
 
   const markAsRead = (id: string) => {
-    setNotifications(notifications.map(notification =>
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
+    if (!user) return;
+
+    const updatedNotifications = notifications.map(notification => {
+      if (notification.id === id) {
+        const updatedRecipients = notification.recipients.map(recipient => {
+          if (recipient.userId === user.id) {
+            return { ...recipient, read: true, readAt: new Date().toISOString() };
+          }
+          return recipient;
+        });
+        return { ...notification, recipients: updatedRecipients };
+      }
+      return notification;
+    });
+
+    setNotifications(updatedNotifications);
+    saveNotifications(updatedNotifications);
   };
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(notification => ({ ...notification, read: true })));
+    if (!user) return;
+
+    const updatedNotifications = notifications.map(notification => {
+      const updatedRecipients = notification.recipients.map(recipient => {
+        if (recipient.userId === user.id) {
+          return { ...recipient, read: true, readAt: new Date().toISOString() };
+        }
+        return recipient;
+      });
+      return { ...notification, recipients: updatedRecipients };
+    });
+
+    setNotifications(updatedNotifications);
+    saveNotifications(updatedNotifications);
+
     toast({
       title: "All notifications marked as read",
       description: `${unreadCount} notifications marked as read`,
     });
   };
 
+  const getAllNotifications = () => {
+    return notifications;
+  };
+
+  const getNotificationStats = () => {
+    if (!user) return { total: 0, read: 0, unread: 0 };
+    
+    const total = userNotifications.length;
+    const unread = unreadCount;
+    const read = total - unread;
+    
+    return { total, read, unread };
+  };
+
+  const getRecipientStats = (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    
+    if (!notification) {
+      return { total: 0, read: 0, unread: 0 };
+    }
+    
+    const total = notification.recipients.length;
+    const read = notification.recipients.filter(r => r.read).length;
+    const unread = total - read;
+    
+    return { total, read, unread };
+  };
+
   return (
     <NotificationContext.Provider
       value={{
         notifications,
+        userNotifications,
         unreadCount,
         addNotification,
         markAsRead,
         markAllAsRead,
+        getAllNotifications,
+        getNotificationStats,
+        getRecipientStats
       }}
     >
       {children}
@@ -109,7 +238,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
 // Notification Bell component to be used across the app
 export const NotificationBell: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { userNotifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { user } = useAuth();
 
   const getNotificationIcon = (type: NotificationType) => {
     switch(type) {
@@ -121,6 +251,13 @@ export const NotificationBell: React.FC = () => {
       default:
         return <div className="h-4 w-4 text-blue-500">ℹ️</div>;
     }
+  };
+
+  // Check if notification is unread for current user
+  const isUnread = (notification: Notification) => {
+    if (!user) return false;
+    const recipient = notification.recipients.find(r => r.userId === user.id);
+    return recipient ? !recipient.read : !notification.global;
   };
 
   return (
@@ -148,17 +285,17 @@ export const NotificationBell: React.FC = () => {
           </Button>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {notifications.length > 0 ? (
-          notifications.map(notification => (
+        {userNotifications.length > 0 ? (
+          userNotifications.map(notification => (
             <DropdownMenuItem key={notification.id} onSelect={() => markAsRead(notification.id)}>
-              <div className={`flex items-start gap-2 py-1 ${!notification.read ? 'font-medium' : ''}`}>
+              <div className={`flex items-start gap-2 py-1 ${isUnread(notification) ? 'font-medium' : ''}`}>
                 {getNotificationIcon(notification.type)}
                 <div className="flex-1">
                   <div className="text-sm font-medium">{notification.title}</div>
                   <div className="text-xs text-gray-500">{notification.message}</div>
-                  <div className="text-xs text-gray-400 mt-1">{notification.date}</div>
+                  <div className="text-xs text-gray-400 mt-1">{new Date(notification.date).toLocaleString()}</div>
                 </div>
-                {!notification.read && (
+                {isUnread(notification) && (
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
                 )}
               </div>

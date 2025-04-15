@@ -1,6 +1,7 @@
 
 // Mock user database services
 const USERS_STORAGE_KEY = 'dms_users';
+const SETTINGS_STORAGE_KEY = 'dms_settings';
 
 export interface StoredUser {
   id: string;
@@ -10,7 +11,41 @@ export interface StoredUser {
   provider?: string;
   isImpersonating?: boolean;
   originalUser?: any;
+  role: string;
+  status: 'Active' | 'Inactive';
+  lastLogin?: string;
+  createdAt: string;
 }
+
+export interface AppSettings {
+  allowSignup: boolean;
+}
+
+export const getAppSettings = (): AppSettings => {
+  const settingsJson = localStorage.getItem(SETTINGS_STORAGE_KEY);
+  if (settingsJson) {
+    try {
+      return JSON.parse(settingsJson);
+    } catch (e) {
+      console.error("Error parsing stored settings:", e);
+    }
+  }
+  
+  // Default settings
+  const defaultSettings = {
+    allowSignup: false
+  };
+  
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(defaultSettings));
+  return defaultSettings;
+};
+
+export const updateAppSettings = (settings: Partial<AppSettings>): AppSettings => {
+  const currentSettings = getAppSettings();
+  const updatedSettings = { ...currentSettings, ...settings };
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updatedSettings));
+  return updatedSettings;
+};
 
 export const getStoredUsers = (): StoredUser[] => {
   const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
@@ -29,7 +64,11 @@ export const getStoredUsers = (): StoredUser[] => {
     username: 'admin',
     email: 'admin@dms.com',
     password: 'admin',
-    provider: 'email'
+    provider: 'email',
+    role: 'Admin',
+    status: 'Active',
+    createdAt: new Date().toISOString(),
+    lastLogin: new Date().toISOString()
   };
   
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify([adminUser]));
@@ -41,8 +80,9 @@ export const ensureUsers = (): StoredUser[] => {
   
   // Make sure admin user exists with correct credentials
   const adminExists = users.some(u => 
-    (u.username === 'admin' && u.password === 'admin') || 
-    (u.email === 'admin@dms.com' && u.password === 'admin')
+    ((u.username === 'admin' && u.password === 'admin') || 
+    (u.email === 'admin@dms.com' && u.password === 'admin')) &&
+    u.role === 'Admin'
   );
   
   if (!adminExists) {
@@ -51,7 +91,11 @@ export const ensureUsers = (): StoredUser[] => {
       username: 'admin',
       email: 'admin@dms.com',
       password: 'admin',
-      provider: 'email'
+      provider: 'email',
+      role: 'Admin',
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
     };
     
     users.push(adminUser);
@@ -73,7 +117,11 @@ export const ensureUsers = (): StoredUser[] => {
       username: 'admin',
       email: 'admin@dms.com',
       password: 'admin',
-      provider: 'email'
+      provider: 'email',
+      role: 'Admin',
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
     };
     
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify([adminUser]));
@@ -85,7 +133,7 @@ export const ensureUsers = (): StoredUser[] => {
 
 export const saveUser = (user: StoredUser) => {
   const users = getStoredUsers();
-  const existingUserIndex = users.findIndex(u => u.email === user.email || u.username === user.username);
+  const existingUserIndex = users.findIndex(u => u.id === user.id);
   
   if (existingUserIndex >= 0) {
     users[existingUserIndex] = user;
@@ -94,6 +142,32 @@ export const saveUser = (user: StoredUser) => {
   }
   
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  return user;
+};
+
+export const addNewUser = (userData: Omit<StoredUser, 'id'>): StoredUser => {
+  const newUser: StoredUser = {
+    ...userData,
+    id: `user_${Date.now()}`,
+  };
+  
+  const users = getStoredUsers();
+  users.push(newUser);
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  
+  return newUser;
+};
+
+export const updateUser = (userId: string, updates: Partial<StoredUser>): StoredUser | null => {
+  const users = getStoredUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  
+  if (userIndex === -1) return null;
+  
+  users[userIndex] = { ...users[userIndex], ...updates };
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  
+  return users[userIndex];
 };
 
 export const findUserByCredentials = (emailOrUsername: string, password: string): StoredUser | undefined => {
@@ -106,6 +180,17 @@ export const findUserByCredentials = (emailOrUsername: string, password: string)
     u.password === password
   );
   
+  if (foundUser) {
+    // Update last login time
+    foundUser.lastLogin = new Date().toISOString();
+    saveUser(foundUser);
+  }
+  
   console.log("Found user:", foundUser);
   return foundUser;
+};
+
+export const findUserById = (userId: string): StoredUser | undefined => {
+  const users = getStoredUsers();
+  return users.find(u => u.id === userId);
 };

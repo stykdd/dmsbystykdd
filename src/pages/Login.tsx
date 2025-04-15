@@ -8,11 +8,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import LoginForm from '../components/auth/LoginForm';
 import { ensureUsers } from '../services/authService';
+import { getAppSettings } from '../services/authService';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [notInstalled, setNotInstalled] = useState(false);
+  const [signupEnabled, setSignupEnabled] = useState(false);
 
   useEffect(() => {
     // Ensure admin user exists
@@ -31,6 +33,10 @@ const Login: React.FC = () => {
     if (isInstalled !== 'true') {
       navigate('/install');
     }
+    
+    // Check if signup is allowed
+    const settings = getAppSettings();
+    setSignupEnabled(settings.allowSignup);
   }, [isAuthenticated, navigate]);
 
   return (
@@ -66,6 +72,17 @@ const Login: React.FC = () => {
         )}
 
         <LoginForm />
+        
+        {signupEnabled && (
+          <div className="text-center text-sm mt-4">
+            <p className="text-gray-600">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-blue-600 hover:text-blue-800">
+                Create an account
+              </Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -6,7 +6,12 @@ import {
   saveUser, 
   ensureUsers,
   findUserByCredentials,
-  StoredUser
+  findUserById,
+  addNewUser,
+  updateUser,
+  StoredUser,
+  getAppSettings,
+  updateAppSettings
 } from '../services/authService';
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,23 +22,33 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => {},
   logout: () => {},
   error: null,
-  impersonateUser: () => {},
-  stopImpersonating: () => {}
+  connectToUserAccount: () => {},
+  disconnectFromUserAccount: () => {},
+  toggleSignupStatus: () => {},
+  users: [],
+  addUser: async () => ({ id: '', username: '', email: '', role: '', status: 'Active', createdAt: '' }),
+  updateUserStatus: () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [settings, setSettings] = useState(getAppSettings());
 
-  // Check for stored user on component mount
+  // Load all users and settings on component mount
   useEffect(() => {
     // First ensure our admin user exists
-    ensureUsers();
+    const storedUsers = ensureUsers();
     
-    // Then check for logged in user
+    // Map stored users to User type (without passwords)
+    const mappedUsers = storedUsers.map(({ password, ...rest }) => rest);
+    setUsers(mappedUsers);
+    
+    // Check for logged in user
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
@@ -43,6 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('user');
       }
     }
+    
+    // Load app settings
+    setSettings(getAppSettings());
+    
     setIsLoading(false);
   }, []);
 
@@ -72,6 +91,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userWithoutPassword);
       localStorage.setItem('user', JSON.stringify(userWithoutPassword));
       
+      // Refresh user list after login
+      const updatedUsers = ensureUsers();
+      setUsers(updatedUsers.map(({ password, ...rest }) => rest));
+      
       setIsLoading(false);
       return true;
     } catch (err: any) {
@@ -87,14 +110,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
+      // Check if signup is allowed
+      const currentSettings = getAppSettings();
+      if (!currentSettings.allowSignup && !user?.role === 'Admin') {
+        throw new Error("User registration is currently disabled");
+      }
+      
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const users = getStoredUsers();
-      const existingUser = users.find(u => u.email === email);
+      const existingUser = users.find(u => u.email === email || u.username === username);
       
       if (existingUser) {
-        throw new Error("User with this email already exists");
+        throw new Error(`A user with this ${existingUser.email === email ? 'email' : 'username'} already exists`);
       }
       
       const newUser: StoredUser = {
@@ -102,16 +131,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username,
         email,
         password,
-        provider: 'email'
+        provider: 'email',
+        role: 'User',
+        status: 'Active',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
       };
       
       saveUser(newUser);
       
-      // Remove password from user object before storing
-      const { password: _, ...userWithoutPassword } = newUser;
+      // If no user is logged in (public registration), log in the new user
+      if (!user) {
+        // Remove password from user object before storing
+        const { password: _, ...userWithoutPassword } = newUser;
+        
+        setUser(userWithoutPassword);
+        localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+      }
       
-      setUser(userWithoutPassword);
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+      // Refresh user list
+      const updatedUsers = getStoredUsers();
+      setUsers(updatedUsers.map(({ password, ...rest }) => rest));
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration');
     } finally {
@@ -124,25 +164,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const impersonateUser = (userData: User) => {
-    // Store the original user for returning later
-    const originalUser = user;
+  const connectToUserAccount = (userData: User) => {
+    // Save the original admin user for returning later
+    const adminUser = user;
     
-    // Create the impersonated user with a flag
-    const impersonatedUser = {
-      ...userData,
-      isImpersonating: true,
-      originalUser: originalUser
-    };
+    // Get full user data from stored users (with all fields)
+    const targetUser = findUserById(userData.id);
     
-    // Set the current user to the impersonated user
-    setUser(impersonatedUser);
+    if (targetUser) {
+      // Store the original user connection
+      const { password: _, ...userToConnect } = targetUser;
+      
+      const connectedUser = {
+        ...userToConnect,
+        connectedBy: adminUser
+      };
+      
+      // Set the current user to the connected user
+      setUser(connectedUser);
+      localStorage.setItem('user', JSON.stringify(connectedUser));
+    }
   };
 
-  const stopImpersonating = () => {
-    if (user?.isImpersonating && user.originalUser) {
-      // Restore the original user
-      setUser(user.originalUser);
+  const disconnectFromUserAccount = () => {
+    if (user?.connectedBy) {
+      // Restore the original admin user
+      setUser(user.connectedBy);
+      localStorage.setItem('user', JSON.stringify(user.connectedBy));
+    }
+  };
+
+  const toggleSignupStatus = (enabled: boolean) => {
+    const updatedSettings = updateAppSettings({ allowSignup: enabled });
+    setSettings(updatedSettings);
+  };
+
+  const addUser = async (userData: Omit<User, 'id' | 'createdAt'>): Promise<User> => {
+    const newUserData: Omit<StoredUser, 'id'> = {
+      ...userData,
+      password: userData.password || 'defaultpassword',
+      createdAt: new Date().toISOString()
+    };
+    
+    const newUser = addNewUser(newUserData);
+    
+    // Refresh users list
+    const updatedUsers = getStoredUsers();
+    const mappedUsers = updatedUsers.map(({ password, ...rest }) => rest);
+    setUsers(mappedUsers);
+    
+    const { password: _, ...newUserWithoutPassword } = newUser;
+    return newUserWithoutPassword;
+  };
+
+  const updateUserStatus = (userId: string, status: 'Active' | 'Inactive') => {
+    const updatedUser = updateUser(userId, { status });
+    
+    if (updatedUser) {
+      // Refresh users list
+      const updatedUsers = getStoredUsers();
+      const mappedUsers = updatedUsers.map(({ password, ...rest }) => rest);
+      setUsers(mappedUsers);
+      
+      // If the updated user is the current user, update the user state
+      if (user?.id === userId) {
+        const { password: _, ...updatedUserWithoutPassword } = updatedUser;
+        setUser(updatedUserWithoutPassword);
+        localStorage.setItem('user', JSON.stringify(updatedUserWithoutPassword));
+      }
     }
   };
 
@@ -156,8 +245,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         error,
-        impersonateUser,
-        stopImpersonating
+        connectToUserAccount,
+        disconnectFromUserAccount,
+        toggleSignupStatus,
+        users,
+        addUser,
+        updateUserStatus
       }}
     >
       {children}
