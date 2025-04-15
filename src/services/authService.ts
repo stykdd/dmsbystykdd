@@ -1,4 +1,3 @@
-
 // Mock user database services
 const USERS_STORAGE_KEY = 'dms_users';
 const SETTINGS_STORAGE_KEY = 'dms_settings';
@@ -9,12 +8,11 @@ export interface StoredUser {
   email: string;
   password: string;
   provider?: string;
-  isImpersonating?: boolean;
-  originalUser?: any;
   role: string;
   status: 'Active' | 'Inactive';
   lastLogin?: string;
   createdAt: string;
+  avatar?: string;
 }
 
 export interface AppSettings {

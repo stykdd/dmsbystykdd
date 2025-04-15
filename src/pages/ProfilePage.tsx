@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +10,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { User, Key } from 'lucide-react';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { User, UserRound, UserCog, UserCheck } from 'lucide-react';
 
 const profileFormSchema = z.object({
   username: z.string().min(3, {
@@ -37,12 +38,19 @@ const passwordFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
+const AVATAR_OPTIONS = [
+  { icon: User, label: 'Default User' },
+  { icon: UserRound, label: 'Round User' },
+  { icon: UserCog, label: 'User Settings' },
+  { icon: UserCheck, label: 'User Check' }
+];
+
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'User');
 
-  // Profile form definition
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -104,6 +112,7 @@ const ProfilePage: React.FC = () => {
         <Tabs defaultValue="account" className="w-full">
           <TabsList>
             <TabsTrigger value="account">Account</TabsTrigger>
+            <TabsTrigger value="avatar">Avatar</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
           
@@ -157,6 +166,46 @@ const ProfilePage: React.FC = () => {
                     </Button>
                   </form>
                 </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="avatar">
+            <Card>
+              <CardHeader>
+                <CardTitle>Avatar Settings</CardTitle>
+                <CardDescription>
+                  Choose an avatar to represent your profile
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-4">
+                  {AVATAR_OPTIONS.map(({ icon: Icon, label }) => (
+                    <Button
+                      key={label}
+                      type="button"
+                      variant={selectedAvatar === label ? "default" : "outline"}
+                      className="p-4 aspect-square"
+                      onClick={() => {
+                        setSelectedAvatar(label);
+                        // Here we would update the user's avatar
+                        toast({
+                          title: "Avatar updated",
+                          description: "Your avatar has been changed successfully.",
+                        });
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <Avatar className="h-12 w-12 bg-primary/10">
+                          <AvatarFallback>
+                            <Icon className="h-6 w-6" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs text-center">{label}</span>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
