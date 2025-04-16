@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,8 +45,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     { path: '/settings', label: 'Settings', icon: <Settings size={20} /> },
   ];
 
+  // Show admin link for admin users
   const isAdmin = user?.email === 'admin@dms.com';
 
+  // Dynamic color based on theme
   const logoColor = theme === 'dark' ? 'text-blue-300' : 'text-blue-600';
 
   return (
@@ -56,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
       <div className="p-4 h-[65px] flex items-center justify-between border-b border-sidebar-border">
         {!collapsed && (
           <span className={`text-xl font-bold ${logoColor}`}>
-            DMS
+            DMS by stykdd
           </span>
         )}
         <Button 

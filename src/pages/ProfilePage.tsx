@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,21 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  UserIcon, 
-  UserRound, 
-  UserCog, 
-  UserCheck,
-  Crown,
-  Cat,
-  Dog,
-  Bird,
-  Ghost,
-  Skull,
-  Smile,
-  Frown,
-  Meh
-} from 'lucide-react';
+import { Key, UserRound, UserCog, UserCheck, User as UserIcon } from 'lucide-react';
 
 const profileFormSchema = z.object({
   username: z.string().min(3, {
@@ -53,26 +39,17 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 const AVATAR_OPTIONS = [
-  { icon: UserIcon, label: 'Default User', color: 'bg-blue-500' },
-  { icon: UserRound, label: 'Round User', color: 'bg-green-500' },
-  { icon: UserCog, label: 'Tech User', color: 'bg-purple-500' },
-  { icon: UserCheck, label: 'Verified User', color: 'bg-emerald-500' },
-  { icon: Crown, label: 'Royal', color: 'bg-yellow-500' },
-  { icon: Cat, label: 'Cat', color: 'bg-orange-500' },
-  { icon: Dog, label: 'Dog', color: 'bg-red-500' },
-  { icon: Bird, label: 'Bird', color: 'bg-sky-500' },
-  { icon: Ghost, label: 'Ghost', color: 'bg-indigo-500' },
-  { icon: Skull, label: 'Skull', color: 'bg-gray-500' },
-  { icon: Smile, label: 'Happy', color: 'bg-pink-500' },
-  { icon: Frown, label: 'Sad', color: 'bg-rose-500' },
-  { icon: Meh, label: 'Neutral', color: 'bg-slate-500' }
+  { icon: UserIcon, label: 'Default User' },
+  { icon: UserRound, label: 'Round User' },
+  { icon: UserCog, label: 'User Settings' },
+  { icon: UserCheck, label: 'User Check' }
 ];
 
 const ProfilePage: React.FC = () => {
-  const { user, connectToUserAccount } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'Default User');
+  const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'User');
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -96,18 +73,6 @@ const ProfilePage: React.FC = () => {
     
     // Simulate API call
     setTimeout(() => {
-      if (user) {
-        // Update the user object with new data
-        const updatedUser = {
-          ...user,
-          username: data.username,
-          email: data.email
-        };
-        
-        // Update context with updated user
-        connectToUserAccount(updatedUser);
-      }
-      
       setIsUpdating(false);
       toast({
         title: "Profile updated",
@@ -130,27 +95,6 @@ const ProfilePage: React.FC = () => {
       });
       passwordForm.reset();
     }, 1000);
-  };
-  
-  // Update user's avatar
-  const updateAvatar = (avatarName: string) => {
-    setSelectedAvatar(avatarName);
-    
-    if (user) {
-      // Create updated user with new avatar
-      const updatedUser = {
-        ...user,
-        avatar: avatarName
-      };
-      
-      // Update the user in context
-      connectToUserAccount(updatedUser);
-      
-      toast({
-        title: "Avatar updated",
-        description: "Your avatar has been changed successfully.",
-      });
-    }
   };
 
   if (!user) {
@@ -235,22 +179,29 @@ const ProfilePage: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {AVATAR_OPTIONS.map(({ icon: Icon, label, color }) => (
+                <div className="grid grid-cols-4 gap-4">
+                  {AVATAR_OPTIONS.map(({ icon: Icon, label }) => (
                     <Button
                       key={label}
                       type="button"
                       variant={selectedAvatar === label ? "default" : "outline"}
-                      className="p-4 h-auto min-h-24 flex flex-col"
-                      onClick={() => updateAvatar(label)}
+                      className="p-4 aspect-square"
+                      onClick={() => {
+                        setSelectedAvatar(label);
+                        // Here we would update the user's avatar
+                        toast({
+                          title: "Avatar updated",
+                          description: "Your avatar has been changed successfully.",
+                        });
+                      }}
                     >
-                      <div className="flex flex-col items-center gap-3">
-                        <Avatar className={`h-14 w-14 ${color} text-white`}>
+                      <div className="flex flex-col items-center gap-2">
+                        <Avatar className="h-12 w-12 bg-primary/10">
                           <AvatarFallback>
-                            <Icon className="h-7 w-7" />
+                            <Icon className="h-6 w-6" />
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs text-center line-clamp-2">{label}</span>
+                        <span className="text-xs text-center">{label}</span>
                       </div>
                     </Button>
                   ))}

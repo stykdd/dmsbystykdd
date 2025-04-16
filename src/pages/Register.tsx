@@ -43,7 +43,7 @@ const Register: React.FC = () => {
     setPasswordError(null);
     
     if (password !== confirmPassword) {
-      setPasswordError("Passwords don't match');
+      setPasswordError("Passwords don't match");
       return;
     }
     
@@ -68,7 +68,7 @@ const Register: React.FC = () => {
               <Globe size={32} />
             </div>
           </div>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900">DMS</h1>
+          <h1 className="mt-4 text-3xl font-bold text-gray-900">DMS by stykdd</h1>
           <p className="mt-2 text-gray-600">
             Create your account
           </p>
