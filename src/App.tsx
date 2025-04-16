@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -31,12 +32,6 @@ import Installation from "./pages/Installation";
 import ImpersonationBanner from "./components/admin/ImpersonationBanner";
 import AuthRedirectHandler from './components/auth/AuthRedirectHandler';
 import InstallationCheck from './components/auth/InstallationCheck';
-import KeywordSearch from "./pages/features/KeywordSearch";
-import BulkEmailVerification from "./pages/features/BulkEmailVerification";
-import DomainAppraisal from "./pages/features/DomainAppraisal";
-import WebsiteScraper from "./pages/features/WebsiteScraper";
-import WishlistPage from "./pages/features/WishlistPage";
-import StatsDashboard from "./pages/features/StatsDashboard";
 
 const queryClient = new QueryClient();
 
@@ -80,15 +75,6 @@ const App: React.FC = () => {
                       <Route path="/todo" element={<ToDoListPage />} />
                       <Route path="/password-generator" element={<PasswordGeneratorPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
-                      
-                      {/* Feature routes */}
-                      <Route path="/features/keyword-search" element={<KeywordSearch />} />
-                      <Route path="/features/bulk-email" element={<BulkEmailVerification />} />
-                      <Route path="/features/domain-appraisal" element={<DomainAppraisal />} />
-                      <Route path="/features/website-scraper" element={<WebsiteScraper />} />
-                      <Route path="/features/wishlist" element={<WishlistPage />} />
-                      <Route path="/features/stats" element={<StatsDashboard />} />
-                      
                       <Route path="*" element={<NotFound />} />
                     </Route>
                   </Routes>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,7 +7,7 @@ import {
   Home, 
   Globe, 
   Search, 
-  Settings,
+  Settings, 
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -14,12 +15,7 @@ import {
   AlertOctagon,
   DollarSign,
   ListTodo,
-  KeyRound,
-  Mail,
-  LineChart,
-  Heart,
-  BarChart2,
-  FileSearch
+  KeyRound
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -47,40 +43,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     { path: '/todo', label: 'To-Do List', icon: <ListTodo size={20} /> },
     { path: '/password-generator', label: 'Password Generator', icon: <KeyRound size={20} /> },
     { path: '/settings', label: 'Settings', icon: <Settings size={20} /> },
-    { 
-      path: '/features/keyword-search', 
-      label: 'Keyword Search', 
-      icon: <Search size={20} /> 
-    },
-    { 
-      path: '/features/bulk-email', 
-      label: 'Email Verification', 
-      icon: <Mail size={20} /> 
-    },
-    { 
-      path: '/features/domain-appraisal', 
-      label: 'Domain Appraisal', 
-      icon: <LineChart size={20} /> 
-    },
-    { 
-      path: '/features/website-scraper', 
-      label: 'Website Scraper', 
-      icon: <FileSearch size={20} /> 
-    },
-    { 
-      path: '/features/wishlist', 
-      label: 'Wishlist', 
-      icon: <Heart size={20} /> 
-    },
-    { 
-      path: '/features/stats', 
-      label: 'Statistics', 
-      icon: <BarChart2 size={20} /> 
-    },
   ];
 
+  // Show admin link for admin users
   const isAdmin = user?.email === 'admin@dms.com';
 
+  // Dynamic color based on theme
   const logoColor = theme === 'dark' ? 'text-blue-300' : 'text-blue-600';
 
   return (
