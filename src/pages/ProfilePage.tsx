@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +10,21 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Key, UserRound, UserCog, UserCheck, User as UserIcon } from 'lucide-react';
+import { 
+  UserIcon, 
+  UserRound, 
+  UserCog, 
+  UserCheck,
+  Crown,
+  Cat,
+  Dog,
+  Bird,
+  Ghost,
+  Skull,
+  Smile,
+  Frown,
+  Meh
+} from 'lucide-react';
 
 const profileFormSchema = z.object({
   username: z.string().min(3, {
@@ -39,10 +52,19 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 const AVATAR_OPTIONS = [
-  { icon: UserIcon, label: 'Default User' },
-  { icon: UserRound, label: 'Round User' },
-  { icon: UserCog, label: 'User Settings' },
-  { icon: UserCheck, label: 'User Check' }
+  { icon: UserIcon, label: 'Default User', color: 'bg-blue-500' },
+  { icon: UserRound, label: 'Round User', color: 'bg-green-500' },
+  { icon: UserCog, label: 'Tech User', color: 'bg-purple-500' },
+  { icon: UserCheck, label: 'Verified User', color: 'bg-emerald-500' },
+  { icon: Crown, label: 'Royal', color: 'bg-yellow-500' },
+  { icon: Cat, label: 'Cat', color: 'bg-orange-500' },
+  { icon: Dog, label: 'Dog', color: 'bg-red-500' },
+  { icon: Bird, label: 'Bird', color: 'bg-sky-500' },
+  { icon: Ghost, label: 'Ghost', color: 'bg-indigo-500' },
+  { icon: Skull, label: 'Skull', color: 'bg-gray-500' },
+  { icon: Smile, label: 'Happy', color: 'bg-pink-500' },
+  { icon: Frown, label: 'Sad', color: 'bg-rose-500' },
+  { icon: Meh, label: 'Neutral', color: 'bg-slate-500' }
 ];
 
 const ProfilePage: React.FC = () => {
@@ -179,8 +201,8 @@ const ProfilePage: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-4 gap-4">
-                  {AVATAR_OPTIONS.map(({ icon: Icon, label }) => (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {AVATAR_OPTIONS.map(({ icon: Icon, label, color }) => (
                     <Button
                       key={label}
                       type="button"
@@ -188,7 +210,6 @@ const ProfilePage: React.FC = () => {
                       className="p-4 aspect-square"
                       onClick={() => {
                         setSelectedAvatar(label);
-                        // Here we would update the user's avatar
                         toast({
                           title: "Avatar updated",
                           description: "Your avatar has been changed successfully.",
@@ -196,7 +217,7 @@ const ProfilePage: React.FC = () => {
                       }}
                     >
                       <div className="flex flex-col items-center gap-2">
-                        <Avatar className="h-12 w-12 bg-primary/10">
+                        <Avatar className={`h-12 w-12 ${color} text-white`}>
                           <AvatarFallback>
                             <Icon className="h-6 w-6" />
                           </AvatarFallback>
