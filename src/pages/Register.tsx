@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,16 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Globe, ShieldX, User, UserRound, UserCog, UserCheck } from 'lucide-react';
+import { AlertCircle, Globe, ShieldX } from 'lucide-react';
 import { getAppSettings } from '../services/authService';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-
-const AVATAR_OPTIONS = [
-  { icon: User, label: 'Default User' },
-  { icon: UserRound, label: 'Round User' },
-  { icon: UserCog, label: 'User Settings' },
-  { icon: UserCheck, label: 'User Check' }
-];
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +20,6 @@ const Register: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [signupEnabled, setSignupEnabled] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState<string>('User');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -48,7 +40,7 @@ const Register: React.FC = () => {
     }
     
     try {
-      await register(username, email, password, selectedAvatar);
+      await register(username, email, password);
       navigate('/dashboard');
       toast({
         title: "Success",
@@ -68,7 +60,7 @@ const Register: React.FC = () => {
               <Globe size={32} />
             </div>
           </div>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900">DMS by stykdd</h1>
+          <h1 className="mt-4 text-3xl font-bold text-gray-900">DMS</h1>
           <p className="mt-2 text-gray-600">
             Create your account
           </p>
@@ -109,30 +101,6 @@ const Register: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              <div>
-                <Label>Choose Avatar</Label>
-                <div className="grid grid-cols-4 gap-4 mt-2">
-                  {AVATAR_OPTIONS.map(({ icon: Icon, label }) => (
-                    <Button
-                      key={label}
-                      type="button"
-                      variant={selectedAvatar === label ? "default" : "outline"}
-                      className="p-4 aspect-square"
-                      onClick={() => setSelectedAvatar(label)}
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        <Avatar className="h-12 w-12 bg-primary/10">
-                          <AvatarFallback>
-                            <Icon className="h-6 w-6" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-center">{label}</span>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              
               <div>
                 <Label htmlFor="username">Username</Label>
                 <Input
