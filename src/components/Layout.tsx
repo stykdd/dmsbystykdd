@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import Footer from './Footer';
 import { initializeApp } from '@/utils/appInitializer';
+import ProfileIcon from './ProfileIcon';
 
 const Layout: React.FC = () => {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -130,7 +131,7 @@ const Layout: React.FC = () => {
                     <TooltipTrigger asChild>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="icon" className="relative">
-                          <UserRound className="h-4 w-4" />
+                          <ProfileIcon />
                         </Button>
                       </DropdownMenuTrigger>
                     </TooltipTrigger>

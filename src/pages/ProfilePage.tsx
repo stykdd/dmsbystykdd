@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,10 +69,10 @@ const AVATAR_OPTIONS = [
 ];
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, connectToUserAccount } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'User');
+  const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'Default User');
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -95,6 +96,18 @@ const ProfilePage: React.FC = () => {
     
     // Simulate API call
     setTimeout(() => {
+      if (user) {
+        // Update the user object with new data
+        const updatedUser = {
+          ...user,
+          username: data.username,
+          email: data.email
+        };
+        
+        // Update context with updated user
+        connectToUserAccount(updatedUser);
+      }
+      
       setIsUpdating(false);
       toast({
         title: "Profile updated",
@@ -117,6 +130,27 @@ const ProfilePage: React.FC = () => {
       });
       passwordForm.reset();
     }, 1000);
+  };
+  
+  // Update user's avatar
+  const updateAvatar = (avatarName: string) => {
+    setSelectedAvatar(avatarName);
+    
+    if (user) {
+      // Create updated user with new avatar
+      const updatedUser = {
+        ...user,
+        avatar: avatarName
+      };
+      
+      // Update the user in context
+      connectToUserAccount(updatedUser);
+      
+      toast({
+        title: "Avatar updated",
+        description: "Your avatar has been changed successfully.",
+      });
+    }
   };
 
   if (!user) {
@@ -201,28 +235,22 @@ const ProfilePage: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {AVATAR_OPTIONS.map(({ icon: Icon, label, color }) => (
                     <Button
                       key={label}
                       type="button"
                       variant={selectedAvatar === label ? "default" : "outline"}
-                      className="p-4 aspect-square"
-                      onClick={() => {
-                        setSelectedAvatar(label);
-                        toast({
-                          title: "Avatar updated",
-                          description: "Your avatar has been changed successfully.",
-                        });
-                      }}
+                      className="p-4 h-auto min-h-24 flex flex-col"
+                      onClick={() => updateAvatar(label)}
                     >
-                      <div className="flex flex-col items-center gap-2">
-                        <Avatar className={`h-12 w-12 ${color} text-white`}>
+                      <div className="flex flex-col items-center gap-3">
+                        <Avatar className={`h-14 w-14 ${color} text-white`}>
                           <AvatarFallback>
-                            <Icon className="h-6 w-6" />
+                            <Icon className="h-7 w-7" />
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs text-center">{label}</span>
+                        <span className="text-xs text-center line-clamp-2">{label}</span>
                       </div>
                     </Button>
                   ))}
