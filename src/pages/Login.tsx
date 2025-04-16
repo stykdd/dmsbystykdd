@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -48,7 +47,7 @@ const Login: React.FC = () => {
               <Globe size={32} />
             </div>
           </div>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900">DMS by stykdd</h1>
+          <h1 className="mt-4 text-3xl font-bold text-gray-900">DMS</h1>
           <p className="mt-2 text-gray-600">
             Manage your domains efficiently
           </p>
