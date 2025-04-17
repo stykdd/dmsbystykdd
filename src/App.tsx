@@ -33,7 +33,7 @@ import ImpersonationBanner from "./components/admin/ImpersonationBanner";
 import AuthRedirectHandler from './components/auth/AuthRedirectHandler';
 import InstallationCheck from './components/auth/InstallationCheck';
 
-// New feature pages
+// Feature pages
 import KeywordSearchCount from "./pages/features/KeywordSearchCount";
 import BulkEmailVerification from "./pages/features/BulkEmailVerification";
 import DomainAppraisal from "./pages/features/DomainAppraisal";
@@ -84,7 +84,7 @@ const App: React.FC = () => {
                       <Route path="/password-generator" element={<PasswordGeneratorPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       
-                      {/* New feature routes */}
+                      {/* Feature routes */}
                       <Route path="/features/keyword-search" element={<KeywordSearchCount />} />
                       <Route path="/features/email-verification" element={<BulkEmailVerification />} />
                       <Route path="/features/domain-appraisal" element={<DomainAppraisal />} />

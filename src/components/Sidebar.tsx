@@ -17,10 +17,10 @@ import {
   ListTodo,
   KeyRound,
   BarChart3,
-  BarChart,
   Mail,
   Heart,
-  ExternalLink
+  ExternalLink,
+  FileSearch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -49,12 +49,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     { path: '/password-generator', label: 'Password Generator', icon: <KeyRound size={20} /> },
   ];
 
-  // New feature section items
+  // Feature section items
   const featureItems = [
     { path: '/features/keyword-search', label: 'Keyword Search', icon: <Search size={20} /> },
     { path: '/features/email-verification', label: 'Email Verification', icon: <Mail size={20} /> },
     { path: '/features/domain-appraisal', label: 'Domain Appraisal', icon: <DollarSign size={20} /> },
-    { path: '/features/website-scraper', label: 'Website Scraper', icon: <ExternalLink size={20} /> },
+    { path: '/features/website-scraper', label: 'Website Scraper', icon: <FileSearch size={20} /> },
     { path: '/features/wishlist', label: 'Wishlist', icon: <Heart size={20} /> },
     { path: '/features/stats', label: 'Statistics', icon: <BarChart3 size={20} /> },
   ];
@@ -105,13 +105,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
           ))}
 
           {/* Features Section Divider */}
-          {!collapsed && (
-            <div className="pt-4 pb-2">
+          <div className={collapsed ? "py-2" : "pt-4 pb-2"}>
+            {!collapsed && (
               <div className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Features
               </div>
-            </div>
-          )}
+            )}
+            {collapsed && <hr className="border-sidebar-border mx-2" />}
+          </div>
 
           {/* Features Navigation Items */}
           {featureItems.map((item) => (
