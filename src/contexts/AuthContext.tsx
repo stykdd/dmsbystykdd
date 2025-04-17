@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Check if signup is allowed
       const currentSettings = getAppSettings();
-      if (!currentSettings.allowSignup && !user?.role === 'Admin') {
+      if (!currentSettings.allowSignup && user?.role !== 'Admin') {
         throw new Error("User registration is currently disabled");
       }
       
@@ -177,6 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const connectedUser = {
         ...userToConnect,
+        isImpersonating: true,
         connectedBy: adminUser
       };
       
@@ -200,9 +201,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addUser = async (userData: Omit<User, 'id' | 'createdAt'>): Promise<User> => {
-    const newUserData: Omit<StoredUser, 'id'> = {
+    const newUserData = {
       ...userData,
-      password: userData.password || 'defaultpassword',
+      password: 'defaultpassword',
       createdAt: new Date().toISOString()
     };
     

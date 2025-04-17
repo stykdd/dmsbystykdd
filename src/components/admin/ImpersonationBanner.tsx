@@ -5,7 +5,7 @@ import { ShieldAlert, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const ImpersonationBanner: React.FC = () => {
-  const { user, stopImpersonating } = useAuth();
+  const { user, disconnectFromUserAccount } = useAuth();
 
   if (!user?.isImpersonating) {
     return null;
@@ -24,7 +24,7 @@ const ImpersonationBanner: React.FC = () => {
       <Button
         variant="secondary"
         size="sm"
-        onClick={stopImpersonating}
+        onClick={disconnectFromUserAccount}
         className="text-amber-800 hover:text-amber-900 bg-white hover:bg-gray-100"
       >
         End impersonation

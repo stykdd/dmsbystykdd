@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -10,7 +11,7 @@ export interface User {
   allowSignup?: boolean;
   avatar?: string; // Optional avatar field
   isImpersonating?: boolean;
-  originalUser?: User;
+  connectedBy?: User;
 }
 
 export interface AuthContextType {

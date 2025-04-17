@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import {
@@ -128,7 +127,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       message: notification.message,
       date: new Date().toISOString(),
       type: notification.type,
-      global: isGlobal,
+      global: notification.global !== undefined ? notification.global : isGlobal,
       recipients,
       createdBy: user.id
     };
