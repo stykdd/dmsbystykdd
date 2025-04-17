@@ -33,6 +33,14 @@ import ImpersonationBanner from "./components/admin/ImpersonationBanner";
 import AuthRedirectHandler from './components/auth/AuthRedirectHandler';
 import InstallationCheck from './components/auth/InstallationCheck';
 
+// New feature pages
+import KeywordSearchCount from "./pages/features/KeywordSearchCount";
+import BulkEmailVerification from "./pages/features/BulkEmailVerification";
+import DomainAppraisal from "./pages/features/DomainAppraisal";
+import WebsiteScraper from "./pages/features/WebsiteScraper";
+import WishlistPage from "./pages/features/WishlistPage";
+import StatsDashboard from "./pages/features/StatsDashboard";
+
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {
@@ -75,6 +83,15 @@ const App: React.FC = () => {
                       <Route path="/todo" element={<ToDoListPage />} />
                       <Route path="/password-generator" element={<PasswordGeneratorPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
+                      
+                      {/* New feature routes */}
+                      <Route path="/features/keyword-search" element={<KeywordSearchCount />} />
+                      <Route path="/features/email-verification" element={<BulkEmailVerification />} />
+                      <Route path="/features/domain-appraisal" element={<DomainAppraisal />} />
+                      <Route path="/features/website-scraper" element={<WebsiteScraper />} />
+                      <Route path="/features/wishlist" element={<WishlistPage />} />
+                      <Route path="/features/stats" element={<StatsDashboard />} />
+                      
                       <Route path="*" element={<NotFound />} />
                     </Route>
                   </Routes>
