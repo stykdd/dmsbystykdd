@@ -89,6 +89,8 @@ const App: React.FC = () => {
                       <Route path="/features/email-verification" element={<BulkEmailVerification />} />
                       <Route path="/features/domain-appraisal" element={<DomainAppraisal />} />
                       <Route path="/features/website-scraper" element={<WebsiteScraper />} />
+
+                      {/* Sales routes */}
                       <Route path="/features/wishlist" element={<WishlistPage />} />
                       <Route path="/features/stats" element={<StatsDashboard />} />
                       
