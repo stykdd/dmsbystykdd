@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,7 +19,9 @@ import {
   Heart,
   BarChart3,
   FileSearch,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -34,31 +35,36 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const { logout, user } = useAuth();
   const { theme } = useTheme();
+  const [domainToolsOpen, setDomainToolsOpen] = React.useState(true);
+  const [otherToolsOpen, setOtherToolsOpen] = React.useState(true);
   
   const isActiveRoute = (path: string) => {
     return location.pathname === path;
   };
 
-  const navItems = [
+  const mainNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: <Home size={20} /> },
     { path: '/domains', label: 'Domains Portfolio', icon: <Globe size={20} /> },
     { path: '/expired', label: 'Expired Domains', icon: <AlertOctagon size={20} /> },
     { path: '/sales', label: 'Domains Sales', icon: <DollarSign size={20} /> },
     { path: '/features/wishlist', label: 'Wishlist', icon: <Heart size={20} /> },
     { path: '/features/stats', label: 'Statistics', icon: <BarChart3 size={20} /> },
+  ];
+
+  const domainToolsItems = [
     { path: '/check-availability', label: 'Check Domains', icon: <Search size={20} /> },
-    { path: '/todo', label: 'To-Do List', icon: <ListTodo size={20} /> },
-    { path: '/password-generator', label: 'Password Generator', icon: <KeyRound size={20} /> },
     { path: '/features/keyword-search', label: 'Keyword Search', icon: <Search size={20} /> },
     { path: '/features/email-verification', label: 'Email Verification', icon: <Mail size={20} /> },
     { path: '/features/domain-appraisal', label: 'Domain Appraisal', icon: <DollarSign size={20} /> },
     { path: '/features/website-scraper', label: 'Website Scraper', icon: <FileSearch size={20} /> },
   ];
 
-  // Show admin link for admin users
-  const isAdmin = user?.email === 'admin@dms.com';
+  const otherToolsItems = [
+    { path: '/todo', label: 'To-Do List', icon: <ListTodo size={20} /> },
+    { path: '/password-generator', label: 'Password Generator', icon: <KeyRound size={20} /> },
+  ];
 
-  // Dynamic color based on theme
+  const isAdmin = user?.email === 'admin@dms.com';
   const logoColor = theme === 'dark' ? 'text-blue-300' : 'text-blue-600';
 
   return (
@@ -83,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
       </div>
       <div className="flex-1 py-6 flex flex-col justify-between overflow-y-auto">
         <nav className="px-2 space-y-1">
-          {navItems.map((item) => (
+          {mainNavItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
@@ -99,6 +105,84 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
               {!collapsed && <span className="ml-3">{item.label}</span>}
             </Link>
           ))}
+
+          <div className="pt-4">
+            <button
+              onClick={() => setDomainToolsOpen(!domainToolsOpen)}
+              className={cn(
+                "w-full flex items-center px-3 py-2 rounded-md transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                collapsed && "justify-center"
+              )}
+            >
+              <Globe size={20} />
+              {!collapsed && (
+                <>
+                  <span className="ml-3 flex-1">Domain Tools</span>
+                  {domainToolsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </>
+              )}
+            </button>
+            
+            {domainToolsOpen && (
+              <div className="mt-1 ml-2">
+                {domainToolsItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-md transition-colors",
+                      isActiveRoute(item.path)
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      collapsed && "justify-center"
+                    )}
+                  >
+                    <span className="flex-shrink-0">{item.icon}</span>
+                    {!collapsed && <span className="ml-3">{item.label}</span>}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={() => setOtherToolsOpen(!otherToolsOpen)}
+              className={cn(
+                "w-full flex items-center px-3 py-2 rounded-md transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                collapsed && "justify-center"
+              )}
+            >
+              <KeyRound size={20} />
+              {!collapsed && (
+                <>
+                  <span className="ml-3 flex-1">Other Tools</span>
+                  {otherToolsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </>
+              )}
+            </button>
+            
+            {otherToolsOpen && (
+              <div className="mt-1 ml-2">
+                {otherToolsItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-md transition-colors",
+                      isActiveRoute(item.path)
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      collapsed && "justify-center"
+                    )}
+                  >
+                    <span className="flex-shrink-0">{item.icon}</span>
+                    {!collapsed && <span className="ml-3">{item.label}</span>}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
           {isAdmin && (
             <Link
