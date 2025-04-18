@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -40,6 +39,7 @@ import DomainAppraisal from "./pages/features/DomainAppraisal";
 import WebsiteScraper from "./pages/features/WebsiteScraper";
 import WishlistPage from "./pages/features/WishlistPage";
 import StatsDashboard from "./pages/features/StatsDashboard";
+import DomainTools from "./pages/DomainTools";
 
 const queryClient = new QueryClient();
 
@@ -77,18 +77,15 @@ const App: React.FC = () => {
                       <Route path="/favorites" element={<FavoritesPage />} />
                       <Route path="/expired" element={<ExpiredPage />} />
                       <Route path="/whois" element={<WhoisRefreshPage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/admin" element={<AdminPage />} />
-                      <Route path="/sales" element={<SalesPage />} />
-                      <Route path="/todo" element={<ToDoListPage />} />
-                      <Route path="/password-generator" element={<PasswordGeneratorPage />} />
-                      <Route path="/profile" element={<ProfilePage />} />
                       
                       {/* Feature routes */}
-                      <Route path="/features/keyword-search" element={<KeywordSearchCount />} />
-                      <Route path="/features/email-verification" element={<BulkEmailVerification />} />
-                      <Route path="/features/domain-appraisal" element={<DomainAppraisal />} />
-                      <Route path="/features/website-scraper" element={<WebsiteScraper />} />
+                      <Route path="/domain-tools" element={<DomainTools />} />
+                      <Route path="/todo" element={<ToDoListPage />} />
+                      <Route path="/password-generator" element={<PasswordGeneratorPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/admin" element={<AdminPage />} />
+                      
+                      {/* Wishlist and Stats routes */}
                       <Route path="/features/wishlist" element={<WishlistPage />} />
                       <Route path="/features/stats" element={<StatsDashboard />} />
                       
