@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -73,7 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
       key={item.path}
       to={item.path}
       className={cn(
-        "flex items-center px-3 py-2 rounded-md transition-colors",
+        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
         isActiveRoute(item.path)
           ? "bg-sidebar-primary text-sidebar-primary-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -81,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
       )}
     >
       <span className="flex-shrink-0">{item.icon}</span>
-      {!collapsed && <span className="ml-3">{item.label}</span>}
+      {!collapsed && <span>{item.label}</span>}
     </Link>
   );
 
@@ -90,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
       "h-full flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
       collapsed ? "w-16" : "w-[240px]"
     )}>
-      <div className="p-4 h-[65px] flex items-center justify-between border-b border-sidebar-border">
+      <div className="p-4 h-[65px] flex items-center justify-between border-b border-sidebar-border shrink-0">
         {!collapsed && (
           <span className={`text-xl font-bold ${logoColor}`}>
             DMS
@@ -98,29 +97,30 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
         )}
         <Button 
           variant="ghost" 
-          size="icon" 
+          size="icon"
           onClick={() => setCollapsed(!collapsed)}
           className="ml-auto"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </Button>
       </div>
-      <div className="flex-1 py-6 flex flex-col justify-between overflow-y-auto">
-        <nav className="px-2 space-y-1">
+
+      <div className="flex-1 overflow-y-auto">
+        <nav className="p-2 space-y-1">
           {mainNavItems.map(renderNavItem)}
 
           <div className="pt-4">
             <button
               onClick={() => setDomainToolsOpen(!domainToolsOpen)}
               className={cn(
-                "w-full flex items-center px-3 py-2 rounded-md transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 collapsed && "justify-center"
               )}
             >
               <Globe size={20} />
               {!collapsed && (
                 <>
-                  <span className="ml-3 flex-1">Domain Tools</span>
+                  <span className="flex-1">Domain Tools</span>
                   {domainToolsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </>
               )}
@@ -137,14 +137,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             <button
               onClick={() => setOtherToolsOpen(!otherToolsOpen)}
               className={cn(
-                "w-full flex items-center px-3 py-2 rounded-md transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 collapsed && "justify-center"
               )}
             >
               <KeyRound size={20} />
               {!collapsed && (
                 <>
-                  <span className="ml-3 flex-1">Other Tools</span>
+                  <span className="flex-1">Other Tools</span>
                   {otherToolsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </>
               )}
@@ -157,52 +157,34 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             )}
           </div>
 
-          {isAdmin && (
-            <Link
-              to="/admin"
-              className={cn(
-                "flex items-center px-3 py-2 rounded-md transition-colors",
-                isActiveRoute("/admin")
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                collapsed && "justify-center"
-              )}
-            >
-              <span className="flex-shrink-0"><Shield size={20} /></span>
-              {!collapsed && <span className="ml-3">Admin</span>}
-            </Link>
-          )}
+          {isAdmin && renderNavItem({
+            path: "/admin",
+            label: "Admin",
+            icon: <Shield size={20} />
+          })}
 
-          <Link
-            to="/settings"
-            className={cn(
-              "flex items-center px-3 py-2 rounded-md transition-colors",
-              isActiveRoute("/settings")
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              collapsed && "justify-center"
-            )}
-          >
-            <span className="flex-shrink-0"><Settings size={20} /></span>
-            {!collapsed && <span className="ml-3">Settings</span>}
-          </Link>
+          {renderNavItem({
+            path: "/settings",
+            label: "Settings",
+            icon: <Settings size={20} />
+          })}
         </nav>
-        <div className="px-2 mt-6">
-          <button
-            onClick={() => logout()}
-            className={cn(
-              "flex w-full items-center px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors",
-              collapsed && "justify-center"
-            )}
-          >
-            <LogOut size={20} />
-            {!collapsed && <span className="ml-3">Logout</span>}
-          </button>
-        </div>
+      </div>
+
+      <div className="p-2 border-t border-sidebar-border shrink-0">
+        <button
+          onClick={() => logout()}
+          className={cn(
+            "flex w-full items-center gap-3 px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors",
+            collapsed && "justify-center"
+          )}
+        >
+          <LogOut size={20} />
+          {!collapsed && <span>Logout</span>}
+        </button>
       </div>
     </div>
   );
 };
 
 export default Sidebar;
-
