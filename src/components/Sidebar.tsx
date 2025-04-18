@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -67,6 +68,23 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   const isAdmin = user?.email === 'admin@dms.com';
   const logoColor = theme === 'dark' ? 'text-blue-300' : 'text-blue-600';
 
+  const renderNavItem = (item: { path: string, label: string, icon: React.ReactNode }) => (
+    <Link
+      key={item.path}
+      to={item.path}
+      className={cn(
+        "flex items-center px-3 py-2 rounded-md transition-colors",
+        isActiveRoute(item.path)
+          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        collapsed && "justify-center"
+      )}
+    >
+      <span className="flex-shrink-0">{item.icon}</span>
+      {!collapsed && <span className="ml-3">{item.label}</span>}
+    </Link>
+  );
+
   return (
     <div className={cn(
       "h-full flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
@@ -89,22 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
       </div>
       <div className="flex-1 py-6 flex flex-col justify-between overflow-y-auto">
         <nav className="px-2 space-y-1">
-          {mainNavItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex items-center px-3 py-2 rounded-md transition-colors",
-                isActiveRoute(item.path)
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                collapsed && "justify-center"
-              )}
-            >
-              <span className="flex-shrink-0">{item.icon}</span>
-              {!collapsed && <span className="ml-3">{item.label}</span>}
-            </Link>
-          ))}
+          {mainNavItems.map(renderNavItem)}
 
           <div className="pt-4">
             <button
@@ -125,22 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             
             {domainToolsOpen && (
               <div className="mt-1 ml-2">
-                {domainToolsItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "flex items-center px-3 py-2 rounded-md transition-colors",
-                      isActiveRoute(item.path)
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                      collapsed && "justify-center"
-                    )}
-                  >
-                    <span className="flex-shrink-0">{item.icon}</span>
-                    {!collapsed && <span className="ml-3">{item.label}</span>}
-                  </Link>
-                ))}
+                {domainToolsItems.map(renderNavItem)}
               </div>
             )}
           </div>
@@ -164,22 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             
             {otherToolsOpen && (
               <div className="mt-1 ml-2">
-                {otherToolsItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "flex items-center px-3 py-2 rounded-md transition-colors",
-                      isActiveRoute(item.path)
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                      collapsed && "justify-center"
-                    )}
-                  >
-                    <span className="flex-shrink-0">{item.icon}</span>
-                    {!collapsed && <span className="ml-3">{item.label}</span>}
-                  </Link>
-                ))}
+                {otherToolsItems.map(renderNavItem)}
               </div>
             )}
           </div>
@@ -232,3 +205,4 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
 };
 
 export default Sidebar;
+
