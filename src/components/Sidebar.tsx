@@ -119,4 +119,3 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
 };
 
 export default Sidebar;
-

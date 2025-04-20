@@ -270,7 +270,9 @@ const SalesPage: React.FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteSoldDomain(id),
+    mutationFn: (id: string) => {
+      return Promise.resolve(deleteSoldDomain(id));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['soldDomains'] });
       toast({
@@ -382,7 +384,7 @@ const SalesPage: React.FC = () => {
 
   const renderSortableHeader = (column: keyof SoldDomain | 'tld', label: string) => (
     <SortableTableHeader
-      isActive={sortConfig.key === column}
+      isActive={sortConfig.key === column as any}
       direction={sortConfig.direction}
       onClick={() => requestSort(column as any)}
     >
@@ -574,12 +576,12 @@ const SalesPage: React.FC = () => {
             <TableHeader>
               <TableRow>
                 {renderSortableHeader('name', 'Domain Name')}
-                {renderSortableHeader('tld', 'TLD')}
+                {renderSortableHeader('tld' as any, 'TLD')}
                 {renderSortableHeader('saleDate', 'Sale Date')}
                 {renderSortableHeader('salePrice', 'Sale Price')}
                 {renderSortableHeader('purchasePrice', 'Purchase Price')}
-                {renderSortableHeader('buyer', 'Buyer')}
-                {renderSortableHeader('marketplace', 'Marketplace')}
+                {renderSortableHeader('buyer' as any, 'Buyer')}
+                {renderSortableHeader('marketplace' as any, 'Marketplace')}
                 {renderSortableHeader('roi', 'ROI')}
                 <TableHead>Actions</TableHead>
               </TableRow>

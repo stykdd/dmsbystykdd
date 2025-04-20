@@ -54,7 +54,7 @@ import {
 } from '../services/domainService';
 import { getRegistrars, getRegistrarAccounts } from '../services/registrarService';
 import { getCategories } from '../services/categoryService';
-import { Domain, DomainFilterOptions, DomainStatus, Registrar, RegistrarAccount, DomainCategory, Currency } from '../types/domain';
+import { Domain, DomainFilterOptions, DomainStatus, Registrar, RegistrarAccount, DomainCategory, Currency } from '../types/domain.d';
 import { formatDate, formatDateWithTime } from '@/lib/date-utils';
 import {
   Dialog,
@@ -158,13 +158,12 @@ const DomainList: React.FC = () => {
     setIsLoading(true);
 
     const filters: DomainFilterOptions = {
-      search: searchQuery,
-      sortBy: sortBy === 'tld' ? 'name' : sortBy,
+      searchTerm: searchQuery,
+      sortBy: sortBy === 'tld' as any ? 'name' : sortBy,
       sortOrder,
-      excludeTrash: true
     };
 
-    if (sortBy === 'tld') {
+    if (sortBy === 'tld' as any) {
       const getTld = (domain: string) => domain.substring(domain.lastIndexOf('.'));
       filters.customSort = (a, b) => {
         const tldA = getTld(a.name);
@@ -180,7 +179,7 @@ const DomainList: React.FC = () => {
     }
 
     if (accountFilter !== 'all') {
-      filters.registrarAccountId = accountFilter;
+      filters.categoryId = accountFilter;
     }
 
     if (categoryFilter !== 'all') {
@@ -199,11 +198,11 @@ const DomainList: React.FC = () => {
     setIsLoading(false);
   }, [searchQuery, registrarFilter, accountFilter, categoryFilter, sortBy, sortOrder]);
 
-  const handleSort = (column: keyof Domain) => {
+  const handleSort = (column: keyof Domain | 'tld') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortBy(column);
+      setSortBy(column as keyof Domain);
       setSortOrder('asc');
     }
   };
@@ -373,7 +372,7 @@ const DomainList: React.FC = () => {
 
   const renderSortableHeader = (column: keyof Domain | 'tld', label: string) => (
     <SortableTableHeader
-      isActive={sortBy === column}
+      isActive={sortBy === (column as keyof Domain)}
       direction={sortOrder}
       onClick={() => handleSort(column)}
     >
@@ -719,7 +718,10 @@ const DomainList: React.FC = () => {
                   <FormItem>
                     <FormLabel>Marketplace</FormLabel>
                     <FormControl>
-                      <Select {...field}>
+                      <Select 
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select marketplace" />
                         </SelectTrigger>
