@@ -42,6 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     { path: '/sales', label: 'Domains Sales', icon: <DollarSign size={20} /> },
     { path: '/features/wishlist', label: 'Wishlist', icon: <Heart size={20} /> },
     { path: '/features/stats', label: 'Statistics', icon: <BarChart3 size={20} /> },
+    { path: '/todo', label: 'To-Do List', icon: <ListTodo size={20} /> },
+    { path: '/password-generator', label: 'Password Generator', icon: <KeyRound size={20} /> },
     { path: '/domain-tools', label: 'Domain Tools', icon: <Wrench size={20} /> },
     { path: '/settings', label: 'Settings', icon: <Settings size={20} /> },
   ];
