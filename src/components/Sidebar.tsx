@@ -7,9 +7,6 @@ import {
   Home, 
   Globe, 
   Settings, 
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
   Shield,
   AlertOctagon,
   DollarSign,
@@ -29,7 +26,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const { theme } = useTheme();
   
   const isActiveRoute = (path: string) => {
@@ -44,8 +41,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     { path: '/features/wishlist', label: 'Wishlist', icon: <Heart size={20} /> },
     { path: '/features/stats', label: 'Statistics', icon: <BarChart3 size={20} /> },
     { path: '/domain-tools', label: 'Domain Tools', icon: <Wrench size={20} /> },
-    { path: '/todo', label: 'To-Do List', icon: <ListTodo size={20} /> },
-    { path: '/password-generator', label: 'Password Generator', icon: <KeyRound size={20} /> },
     { path: '/settings', label: 'Settings', icon: <Settings size={20} /> },
   ];
 
@@ -100,19 +95,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
             icon: <Shield size={20} />
           })}
         </nav>
-      </div>
-
-      <div className="p-2 border-t border-sidebar-border shrink-0">
-        <button
-          onClick={() => logout()}
-          className={cn(
-            "flex w-full items-center gap-3 px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors",
-            collapsed && "justify-center"
-          )}
-        >
-          <LogOut size={20} />
-          {!collapsed && <span>Logout</span>}
-        </button>
       </div>
     </div>
   );
