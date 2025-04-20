@@ -49,14 +49,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   ];
 
   const isAdmin = user?.email === 'admin@dms.com';
-  const logoColor = theme === 'dark' ? 'text-blue-300' : 'text-blue-600';
+  const logoColor = theme === 'dark' ? 'text-blue-400' : 'text-blue-600';
 
   const renderNavItem = (item: { path: string, label: string, icon: React.ReactNode }) => (
     <Link
       key={item.path}
       to={item.path}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
+        "flex items-center gap-3 px-3 py-2 my-1 rounded-md transition-colors",
         isActiveRoute(item.path)
           ? "bg-sidebar-primary text-sidebar-primary-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
       )}
     >
       <span className="flex-shrink-0">{item.icon}</span>
-      {!collapsed && <span>{item.label}</span>}
+      {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
     </Link>
   );
 
@@ -83,15 +83,32 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
           variant="ghost" 
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="ml-auto"
+          className="ml-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <nav className="p-2 space-y-1">
-          {mainNavItems.map(renderNavItem)}
+      <div className="flex-1 overflow-y-auto py-4">
+        <div className="px-3 mb-2">
+          {!collapsed && <p className="text-xs uppercase font-semibold text-sidebar-foreground/50 mb-1 ml-2">Main</p>}
+        </div>
+        <nav className="space-y-1 px-2">
+          {mainNavItems.slice(0, 4).map(renderNavItem)}
+        </nav>
+        
+        <div className="px-3 my-2">
+          {!collapsed && <p className="text-xs uppercase font-semibold text-sidebar-foreground/50 mb-1 ml-2">Features</p>}
+        </div>
+        <nav className="space-y-1 px-2">
+          {mainNavItems.slice(4, 8).map(renderNavItem)}
+        </nav>
+        
+        <div className="px-3 my-2">
+          {!collapsed && <p className="text-xs uppercase font-semibold text-sidebar-foreground/50 mb-1 ml-2">System</p>}
+        </div>
+        <nav className="space-y-1 px-2">
+          {mainNavItems.slice(8).map(renderNavItem)}
           
           {isAdmin && renderNavItem({
             path: "/admin",

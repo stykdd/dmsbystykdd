@@ -63,33 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Domain management custom colors
-				blue: {
-					50: '#eef2ff',
-					100: '#e0e7ff',
-					200: '#c7d2fe',
-					300: '#a5b4fc',
-					400: '#818cf8',
-					500: '#6366f1',
-					600: '#4f46e5',
-					700: '#4338ca',
-					800: '#3730a3',
-					900: '#312e81',
-					950: '#1e1b4b',
-				},
-				teal: {
-					50: '#f0fdfa',
-					100: '#ccfbf1',
-					200: '#99f6e4',
-					300: '#5eead4',
-					400: '#2dd4bf',
-					500: '#14b8a6',
-					600: '#0d9488',
-					700: '#0f766e',
-					800: '#115e59',
-					900: '#134e4a',
-					950: '#042f2e',
-				},
+				// Custom status colors
 				status: {
 					active: '#10b981', // emerald-500
 					warning: '#f59e0b', // amber-500
@@ -127,7 +101,8 @@ export default {
                     'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
                     'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
                     '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-                    'inner': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)'
+                    'inner': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
+                    'card': '0 4px 12px rgba(0, 0, 0, 0.05)'
                 },
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
