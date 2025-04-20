@@ -14,7 +14,9 @@ import {
   KeyRound,
   Heart,
   BarChart3,
-  Wrench
+  Wrench,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
