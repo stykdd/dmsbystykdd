@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -55,7 +54,7 @@ const WishlistPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(false);
-  const [categories, setCategories] = useState<{ id: string, name: string; color: string; }[]>([]);
+  const [categories, setCategories<{ id: string, name: string; color: string; }[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [editTarget, setEditTarget] = useState<WishlistDomain | null>(null);
   const [editDomain, setEditDomain] = useState<string>("");
@@ -634,13 +633,13 @@ const WishlistPage: React.FC = () => {
                       aria-label="Select all"
                     />
                   </div>
-                  <div className="grid grid-cols-13 gap-2 w-full text-sm font-medium text-muted-foreground">
-                    <div className="col-span-4">Domain</div>
-                    <div className="col-span-2">Category</div>
-                    <div className="col-span-2">Date Added</div>
-                    <div className="col-span-2">Status</div>
-                    <div className="col-span-2">Notifications</div>
-                    <div className="col-span-1"></div>
+                  <div className="grid grid-cols-6 gap-2 w-full text-sm font-medium text-muted-foreground">
+                    <div className="col-span-2">Domain</div>
+                    <div>Category</div>
+                    <div>Date Added</div>
+                    <div>Status</div>
+                    <div>Notifications</div>
+                    <div>Edit</div>
                   </div>
                 </div>
 
@@ -659,20 +658,25 @@ const WishlistPage: React.FC = () => {
                           aria-label={`Select ${item.domain}`}
                         />
                       </div>
-                      <div className="grid grid-cols-13 gap-2 w-full items-center">
-                        <div className="col-span-4 font-medium truncate">
+                      {/* The table row with 6 columns as specified */}
+                      <div className="grid grid-cols-6 gap-2 w-full items-center">
+                        {/* Domain (with optional note) */}
+                        <div className="col-span-2 font-medium truncate">
                           {item.domain}
                           {item.note && (
                             <span className="ml-2 text-xs text-muted-foreground italic">{item.note}</span>
                           )}
                         </div>
-                        <div className="col-span-2">
+                        {/* Category */}
+                        <div>
                           <Badge variant="outline">{item.category}</Badge>
                         </div>
-                        <div className="col-span-2 text-sm text-muted-foreground">
+                        {/* Date Added */}
+                        <div className="text-sm text-muted-foreground">
                           {formatDate(item.dateAdded)}
                         </div>
-                        <div className="col-span-2">
+                        {/* Status */}
+                        <div>
                           {item.availability ? (
                             <div className="flex flex-col">
                               <div className="flex items-center space-x-1.5">
@@ -692,7 +696,8 @@ const WishlistPage: React.FC = () => {
                             <span className="text-sm">Unknown</span>
                           )}
                         </div>
-                        <div className="col-span-2 flex justify-between items-center">
+                        {/* Notifications */}
+                        <div className="flex justify-between items-center">
                           <Switch
                             checked={item.notificationsEnabled}
                             onCheckedChange={() => toggleNotification(item.id)}
@@ -704,7 +709,8 @@ const WishlistPage: React.FC = () => {
                             <BellOff className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
-                        <div className="col-span-1 flex items-center justify-end gap-1">
+                        {/* Edit */}
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             size="icon"
                             variant="ghost"
