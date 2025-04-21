@@ -4,9 +4,6 @@ import { FileDown, FileUp, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { getDomains } from "@/services/domainService";
-import { getSoldDomainsStore, getDomainStore, resetToInitialData } from "@/services/domain/mockData";
-import { Separator } from "@/components/ui/separator";
 
 const DataManager = () => {
   const { addNotification } = useNotifications();
@@ -18,8 +15,8 @@ const DataManager = () => {
       const exportData = {
         date: new Date().toISOString(),
         version: "1.0",
-        domains: getDomainStore(),
-        soldDomains: getSoldDomainsStore(),
+        domains: JSON.parse(localStorage.getItem('domains_data') || '[]'),
+        soldDomains: JSON.parse(localStorage.getItem('sold_domains_data') || '[]'),
         users: JSON.parse(localStorage.getItem('dms_users') || '[]'),
         settings: {
           // Include any app settings
@@ -41,14 +38,16 @@ const DataManager = () => {
       addNotification({
         title: "Export Successful",
         message: "System data has been exported successfully.",
-        type: "info"
+        type: "info",
+        global: true,
       });
     } catch (error) {
       console.error("Export failed:", error);
       addNotification({
         title: "Export Failed",
         message: "Failed to export system data. Please try again.",
-        type: "error"
+        type: "error",
+        global: true,
       });
     }
   };
@@ -78,7 +77,8 @@ const DataManager = () => {
         addNotification({
           title: "Import Successful",
           message: "System data has been imported successfully. Refresh the page to see changes.",
-          type: "info"
+          type: "info",
+          global: true,
         });
         
         // Force page reload to reflect changes
@@ -90,7 +90,8 @@ const DataManager = () => {
         addNotification({
           title: "Import Failed", 
           message: "Failed to import system data. File may be corrupted or invalid.",
-          type: "error"
+          type: "error",
+          global: true,
         });
       }
       
@@ -113,11 +114,17 @@ const DataManager = () => {
   // Reset to default data
   const handleResetData = () => {
     if (window.confirm("Are you sure you want to reset all data to default? This action cannot be undone.")) {
-      resetToInitialData();
+      // Assuming resetToInitialData resets localStorage keys accordingly
+      localStorage.removeItem('domains_data');
+      localStorage.removeItem('sold_domains_data');
+      localStorage.removeItem('dms_users');
+      localStorage.removeItem('dms_installed');
+      
       addNotification({
         title: "Data Reset",
         message: "All data has been reset to default. Refresh the page to see changes.",
-        type: "info"
+        type: "info",
+        global: true,
       });
       
       // Force page reload after reset
@@ -164,7 +171,7 @@ const DataManager = () => {
           />
         </div>
         
-        <Separator className="my-4" />
+        <div className="my-4 border-t border-border" />
         
         <div>
           <Button
