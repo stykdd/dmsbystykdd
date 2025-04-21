@@ -8,12 +8,12 @@ import BulkEmailVerification from './features/BulkEmailVerification';
 import DomainAppraisal from './features/DomainAppraisal';
 import WebsiteScraper from './features/WebsiteScraper';
 
-const DomainTools = () => {
+const DomainsTools = () => {
   return (
     <div className="container mx-auto p-6">
       <Card>
         <CardHeader>
-          <CardTitle>Domain Tools</CardTitle>
+          <CardTitle>Domains Tools</CardTitle>
         </CardHeader>
         <Tabs defaultValue="check" className="p-6">
           <TabsList className="w-full">
@@ -44,4 +44,4 @@ const DomainTools = () => {
   );
 };
 
-export default DomainTools;
+export default DomainsTools;
