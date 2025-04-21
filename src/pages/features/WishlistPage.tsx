@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,8 +28,6 @@ import { bulkCheckAvailability } from '@/services/domain/availabilityService';
 import { fetchWhoisData } from '@/services/domain/whoisService';
 import { getCategories, addCategory } from "@/services/categoryService";
 import { Textarea } from "@/components/ui/textarea";
-
-const DOMAIN_CATEGORIES = ["Technology", "Finance", "Health", "E-commerce", "Education", "Entertainment"];
 
 // Interface for wishlist domain items
 interface WishlistDomain {
@@ -74,8 +73,8 @@ const WishlistPage: React.FC = () => {
     setCategories(getCategories());
   }, [isAddCategoryDialogOpen]);
 
-  // Update DOMAIN_CATEGORIES to use dynamic data
-  const DOMAIN_CATEGORIES = categories.map(c => c.name);
+  // Get categories dynamically
+  const domainCategories = categories.map(c => c.name);
 
   // Load initial demo data
   useEffect(() => {
@@ -504,7 +503,7 @@ const WishlistPage: React.FC = () => {
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent className="z-50 bg-background">
-                      {DOMAIN_CATEGORIES.map(category => (
+                      {domainCategories.map(category => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -593,7 +592,7 @@ const WishlistPage: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {DOMAIN_CATEGORIES.map(category => (
+                    {domainCategories.map(category => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
@@ -787,7 +786,7 @@ const WishlistPage: React.FC = () => {
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent className="z-50 bg-background">
-                      {DOMAIN_CATEGORIES.map(category => (
+                      {domainCategories.map(category => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -891,3 +890,16 @@ const WishlistPage: React.FC = () => {
               <Separator />
               <div className="flex items-center justify-between">
                 <span className="text-sm">Notifications enabled</span>
+                <Badge variant="outline" className="font-mono">
+                  {wishlist.filter(item => item.notificationsEnabled).length}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default WishlistPage;
