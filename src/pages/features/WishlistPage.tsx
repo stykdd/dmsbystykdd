@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -5,25 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { 
-  Heart, 
-  Plus, 
-  Trash2, 
-  Search, 
-  Bell, 
-  BellOff, 
-  Clock, 
+import {
+  Heart,
+  Plus,
+  Trash2,
+  Search,
+  Bell,
+  BellOff,
+  Clock,
   AlertCircle,
   CheckCircle2,
-  ArrowUpDown 
+  ArrowUpDown,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { bulkCheckAvailability } from '@/services/domain/availabilityService';
+import { fetchWhoisData } from '@/services/domain/whoisService';
 
-// Sample domain categories for filtering
 const DOMAIN_CATEGORIES = ["Technology", "Finance", "Health", "E-commerce", "Education", "Entertainment"];
 
 // Interface for wishlist domain items
@@ -37,6 +39,7 @@ interface WishlistDomain {
   availability?: {
     status: 'available' | 'unavailable' | 'pending';
     lastChecked: string;
+    expiryDate?: string | null;
   };
 }
 
@@ -50,6 +53,7 @@ const WishlistPage: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(false);
 
   // Load initial demo data
   useEffect(() => {
@@ -62,8 +66,9 @@ const WishlistPage: React.FC = () => {
         category: "Technology",
         note: "Perfect for a tech startup",
         availability: {
-          status: 'unavailable',
-          lastChecked: "2023-12-01T09:45:20Z"
+          status: 'pending',
+          lastChecked: "",
+          expiryDate: null,
         }
       },
       {
@@ -73,8 +78,9 @@ const WishlistPage: React.FC = () => {
         notificationsEnabled: true,
         category: "Health",
         availability: {
-          status: 'unavailable',
-          lastChecked: "2023-12-01T09:45:20Z"
+          status: 'pending',
+          lastChecked: "",
+          expiryDate: null,
         }
       },
       {
@@ -85,8 +91,9 @@ const WishlistPage: React.FC = () => {
         category: "Finance",
         note: "Great domain for financial services",
         availability: {
-          status: 'available',
-          lastChecked: "2023-12-05T16:20:10Z"
+          status: 'pending',
+          lastChecked: "",
+          expiryDate: null,
         }
       },
       {
@@ -97,13 +104,93 @@ const WishlistPage: React.FC = () => {
         category: "Education",
         availability: {
           status: 'pending',
-          lastChecked: "2023-12-04T21:15:33Z"
+          lastChecked: "",
+          expiryDate: null,
         }
       }
     ];
-    
+
     setWishlist(demoWishlist);
   }, []);
+
+  // Real-time check all wishlist domains whenever wishlist changes
+  useEffect(() => {
+    const checkAll = async () => {
+      setIsChecking(true);
+      const unresolved = wishlist.filter(w => w.availability?.status === 'pending' || !w.availability);
+      if (unresolved.length === 0) {
+        setIsChecking(false);
+        return;
+      }
+
+      // Start all as pending
+      setWishlist(oldList =>
+        oldList.map(w => unresolved.find(u => u.id === w.id) ?
+          { ...w, availability: { ...w.availability, status: 'pending', lastChecked: new Date().toISOString() } }
+          : w
+        )
+      );
+      // Check
+      try {
+        const checkResults = await bulkCheckAvailability(wishlist.map(w => w.domain));
+        const updateAvailability = async (result: { domain: string; available: boolean; error?: string; }) => {
+          if (result.available) {
+            return {
+              status: 'available',
+              lastChecked: new Date().toISOString(),
+              expiryDate: null,
+            };
+          } else if (result.error) {
+            return {
+              status: 'pending',
+              lastChecked: new Date().toISOString(),
+              expiryDate: null,
+            };
+          } else {
+            // Unavailable: fetch expiry date from WHOIS
+            try {
+              const whois = await fetchWhoisData(result.domain);
+              // Try to find an expiry date: several keys could be present in WHOIS results
+              const expiry =
+                whois.registryExpiryDate ||
+                whois.expirationDate ||
+                whois.expiresOn ||
+                null;
+              return {
+                status: 'unavailable',
+                lastChecked: new Date().toISOString(),
+                expiryDate: expiry,
+              };
+            } catch {
+              return {
+                status: 'unavailable',
+                lastChecked: new Date().toISOString(),
+                expiryDate: null,
+              };
+            }
+          }
+        };
+
+        // Map updated availability
+        const newAvailabilityArray = await Promise.all(
+          checkResults.map(updateAvailability)
+        );
+
+        setWishlist(oldList =>
+          oldList.map((w, i) => ({
+            ...w,
+            availability: newAvailabilityArray[i],
+          }))
+        );
+      } finally {
+        setIsChecking(false);
+      }
+    };
+    // Only check if some are pending
+    if (wishlist.some(w => w.availability?.status === 'pending' || !w.availability)) {
+      checkAll();
+    }
+  }, [wishlist.length]);
 
   const handleAddDomain = () => {
     if (!newDomain.trim()) {
@@ -126,7 +213,6 @@ const WishlistPage: React.FC = () => {
 
     setError(null);
 
-    // Add new domain to wishlist
     const newItem: WishlistDomain = {
       id: Date.now().toString(),
       domain: newDomain,
@@ -136,13 +222,12 @@ const WishlistPage: React.FC = () => {
       note: note || undefined,
       availability: {
         status: 'pending',
-        lastChecked: new Date().toISOString()
+        lastChecked: "",
+        expiryDate: null,
       }
     };
 
     setWishlist(prev => [newItem, ...prev]);
-    
-    // Reset form
     setNewDomain("");
     setSelectedCategory("");
     setNote("");
@@ -150,10 +235,10 @@ const WishlistPage: React.FC = () => {
   };
 
   const toggleNotification = (id: string) => {
-    setWishlist(prev => 
-      prev.map(item => 
-        item.id === id 
-          ? { ...item, notificationsEnabled: !item.notificationsEnabled } 
+    setWishlist(prev =>
+      prev.map(item =>
+        item.id === id
+          ? { ...item, notificationsEnabled: !item.notificationsEnabled }
           : item
       )
     );
@@ -161,11 +246,11 @@ const WishlistPage: React.FC = () => {
 
   const handleDeleteSelected = () => {
     if (selectedDomains.size === 0) return;
-    
-    setWishlist(prev => 
+
+    setWishlist(prev =>
       prev.filter(item => !selectedDomains.has(item.id))
     );
-    
+
     setSelectedDomains(new Set());
   };
 
@@ -181,16 +266,14 @@ const WishlistPage: React.FC = () => {
 
   const selectAllDomains = () => {
     if (selectedDomains.size === filteredWishlist.length) {
-      // If all are selected, deselect all
       setSelectedDomains(new Set());
     } else {
-      // Otherwise, select all
       setSelectedDomains(new Set(filteredWishlist.map(item => item.id)));
     }
   };
 
   // Filter wishlist based on category
-  const filteredWishlist = wishlist.filter(item => 
+  const filteredWishlist = wishlist.filter(item =>
     filterCategory === "all" || item.category === filterCategory
   );
 
@@ -216,7 +299,6 @@ const WishlistPage: React.FC = () => {
     }
   };
 
-  // Status icon
   const StatusIcon = ({ status }: { status: 'available' | 'unavailable' | 'pending' }) => {
     switch (status) {
       case 'available':
@@ -230,11 +312,71 @@ const WishlistPage: React.FC = () => {
     }
   };
 
+  // Real-time check handler for button
+  const handleManualCheck = async () => {
+    setIsChecking(true);
+    setWishlist(oldList =>
+      oldList.map(w => ({
+        ...w,
+        availability: {
+          ...w.availability,
+          status: 'pending',
+          lastChecked: new Date().toISOString(),
+        }
+      }))
+    );
+    const checkResults = await bulkCheckAvailability(wishlist.map(w => w.domain));
+    const newAvailabilityArray = await Promise.all(
+      checkResults.map(async (result) => {
+        if (result.available) {
+          return {
+            status: 'available',
+            lastChecked: new Date().toISOString(),
+            expiryDate: null,
+          };
+        } else if (result.error) {
+          return {
+            status: 'pending',
+            lastChecked: new Date().toISOString(),
+            expiryDate: null,
+          };
+        } else {
+          try {
+            const whois = await fetchWhoisData(result.domain);
+            const expiry =
+              whois.registryExpiryDate ||
+              whois.expirationDate ||
+              whois.expiresOn ||
+              null;
+            return {
+              status: 'unavailable',
+              lastChecked: new Date().toISOString(),
+              expiryDate: expiry,
+            };
+          } catch {
+            return {
+              status: 'unavailable',
+              lastChecked: new Date().toISOString(),
+              expiryDate: null,
+            };
+          }
+        }
+      })
+    );
+    setWishlist(oldList =>
+      oldList.map((w, i) => ({
+        ...w,
+        availability: newAvailabilityArray[i],
+      }))
+    );
+    setIsChecking(false);
+  };
+
+  // -----------------RENDER--------------------
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Domain Wishlist</h1>
-        
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -249,7 +391,6 @@ const WishlistPage: React.FC = () => {
                 Add a domain to your wishlist to be notified when it becomes available.
               </DialogDescription>
             </DialogHeader>
-            
             <div className="space-y-4 py-4">
               {error && (
                 <Alert variant="destructive">
@@ -257,7 +398,6 @@ const WishlistPage: React.FC = () => {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
               <div className="space-y-2">
                 <Label htmlFor="domain">Domain Name</Label>
                 <Input
@@ -267,7 +407,6 @@ const WishlistPage: React.FC = () => {
                   onChange={(e) => setNewDomain(e.target.value)}
                 />
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -283,7 +422,6 @@ const WishlistPage: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="note">Note (Optional)</Label>
                 <Input
@@ -294,7 +432,6 @@ const WishlistPage: React.FC = () => {
                 />
               </div>
             </div>
-            
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
@@ -306,164 +443,180 @@ const WishlistPage: React.FC = () => {
           </DialogContent>
         </Dialog>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-3 space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <CardTitle>Your Domain Wishlist</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="h-8"
-                  >
-                    <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
-                    {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
-                  </Button>
-                  
-                  <Select value={filterCategory} onValueChange={setFilterCategory}>
-                    <SelectTrigger className="w-[140px] h-8">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {DOMAIN_CATEGORIES.map(category => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <CardDescription>
-                {sortedWishlist.length} {sortedWishlist.length === 1 ? 'domain' : 'domains'} in your wishlist
-              </CardDescription>
-            </CardHeader>
-            
-            {selectedDomains.size > 0 && (
-              <div className="px-6 py-2 bg-muted flex items-center justify-between">
-                <span className="text-sm">
-                  {selectedDomains.size} {selectedDomains.size === 1 ? 'domain' : 'domains'} selected
-                </span>
-                <Button 
-                  variant="outline" 
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle>Your Domain Wishlist</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
                   size="sm"
-                  onClick={handleDeleteSelected}
-                  className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                  className="h-8"
                 >
-                  <Trash2 className="mr-2 h-3.5 w-3.5" />
-                  Delete Selected
+                  <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
+                  {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
                 </Button>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-[140px] h-8">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {DOMAIN_CATEGORIES.map(category => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-            
-            <CardContent className="pt-4">
-              {sortedWishlist.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="flex items-center px-2 py-1">
-                    <div className="w-6 mr-2">
-                      <Checkbox 
-                        checked={selectedDomains.size === filteredWishlist.length && filteredWishlist.length > 0} 
-                        onCheckedChange={selectAllDomains}
-                        aria-label="Select all"
-                      />
-                    </div>
-                    <div className="grid grid-cols-12 gap-2 w-full text-sm font-medium text-muted-foreground">
-                      <div className="col-span-4">Domain</div>
-                      <div className="col-span-2">Category</div>
-                      <div className="col-span-2">Date Added</div>
-                      <div className="col-span-2">Status</div>
-                      <div className="col-span-2">Notifications</div>
-                    </div>
+            </div>
+            <CardDescription>
+              {sortedWishlist.length} {sortedWishlist.length === 1 ? 'domain' : 'domains'} in your wishlist
+            </CardDescription>
+          </CardHeader>
+
+          {selectedDomains.size > 0 && (
+            <div className="px-6 py-2 bg-muted flex items-center justify-between">
+              <span className="text-sm">
+                {selectedDomains.size} {selectedDomains.size === 1 ? 'domain' : 'domains'} selected
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteSelected}
+                className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                Delete Selected
+              </Button>
+            </div>
+          )}
+
+          <CardContent className="pt-4">
+            {sortedWishlist.length > 0 ? (
+              <div className="space-y-4">
+                <div className="flex items-center px-2 py-1">
+                  <div className="w-6 mr-2">
+                    <Checkbox
+                      checked={selectedDomains.size === filteredWishlist.length && filteredWishlist.length > 0}
+                      onCheckedChange={selectAllDomains}
+                      aria-label="Select all"
+                    />
                   </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-2">
-                    {sortedWishlist.map(item => (
-                      <div 
-                        key={item.id}
-                        className="flex items-center px-2 py-3 rounded-md hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="w-6 mr-2">
-                          <Checkbox 
-                            checked={selectedDomains.has(item.id)} 
-                            onCheckedChange={() => toggleSelectDomain(item.id)}
-                            aria-label={`Select ${item.domain}`}
-                          />
+                  <div className="grid grid-cols-12 gap-2 w-full text-sm font-medium text-muted-foreground">
+                    <div className="col-span-4">Domain</div>
+                    <div className="col-span-2">Category</div>
+                    <div className="col-span-2">Date Added</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-2">Notifications</div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  {sortedWishlist.map(item => (
+                    <div
+                      key={item.id}
+                      className="flex items-center px-2 py-3 rounded-md hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="w-6 mr-2">
+                        <Checkbox
+                          checked={selectedDomains.has(item.id)}
+                          onCheckedChange={() => toggleSelectDomain(item.id)}
+                          aria-label={`Select ${item.domain}`}
+                        />
+                      </div>
+                      <div className="grid grid-cols-12 gap-2 w-full items-center">
+                        <div className="col-span-4 font-medium truncate">
+                          {item.domain}
+                          {item.note && (
+                            <span className="ml-2 text-xs text-muted-foreground italic">{item.note}</span>
+                          )}
                         </div>
-                        <div className="grid grid-cols-12 gap-2 w-full items-center">
-                          <div className="col-span-4 font-medium truncate">{item.domain}</div>
-                          <div className="col-span-2">
-                            <Badge variant="outline">{item.category}</Badge>
-                          </div>
-                          <div className="col-span-2 text-sm text-muted-foreground">
-                            {formatDate(item.dateAdded)}
-                          </div>
-                          <div className="col-span-2">
-                            {item.availability ? (
+                        <div className="col-span-2">
+                          <Badge variant="outline">{item.category}</Badge>
+                        </div>
+                        <div className="col-span-2 text-sm text-muted-foreground">
+                          {formatDate(item.dateAdded)}
+                        </div>
+                        <div className="col-span-2">
+                          {item.availability ? (
+                            <div className="flex flex-col">
                               <div className="flex items-center space-x-1.5">
                                 <StatusIcon status={item.availability.status} />
-                                <span className="text-sm capitalize">
+                                <span className={`text-sm capitalize ${getStatusColor(item.availability.status)}`}>
                                   {item.availability.status}
                                 </span>
                               </div>
-                            ) : (
-                              <span className="text-sm">Unknown</span>
-                            )}
-                          </div>
-                          <div className="col-span-2 flex justify-between items-center">
-                            <Switch
-                              checked={item.notificationsEnabled}
-                              onCheckedChange={() => toggleNotification(item.id)}
-                              aria-label="Toggle notifications"
-                            />
-                            {item.notificationsEnabled ? (
-                              <Bell className="h-4 w-4 text-blue-500" />
-                            ) : (
-                              <BellOff className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
+                              {item.availability.status === 'unavailable' && item.availability.expiryDate && (
+                                <span className="text-xs text-muted-foreground mt-1">
+                                  Expiry:&nbsp;
+                                  {new Date(item.availability.expiryDate).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm">Unknown</span>
+                          )}
+                        </div>
+                        <div className="col-span-2 flex justify-between items-center">
+                          <Switch
+                            checked={item.notificationsEnabled}
+                            onCheckedChange={() => toggleNotification(item.id)}
+                            aria-label="Toggle notifications"
+                          />
+                          {item.notificationsEnabled ? (
+                            <Bell className="h-4 w-4 text-blue-500" />
+                          ) : (
+                            <BellOff className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Heart className="h-12 w-12 text-muted-foreground mb-3" />
-                  <h3 className="text-lg font-medium">Your wishlist is empty</h3>
-                  <p className="text-sm text-muted-foreground mt-1 mb-4">
-                    Add domains to be notified when they become available
-                  </p>
-                  <Button onClick={() => setIsAddDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Your First Domain
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-            
-            {sortedWishlist.length > 0 && (
-              <CardFooter className="pt-0 flex justify-between">
-                <Button variant="outline" size="sm">
-                  <Search className="mr-2 h-4 w-4" />
-                  Check Availability
-                </Button>
-                
-                <p className="text-xs text-muted-foreground">
-                  Last checked: {new Date().toLocaleDateString()}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Heart className="h-12 w-12 text-muted-foreground mb-3" />
+                <h3 className="text-lg font-medium">Your wishlist is empty</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  Add domains to be notified when they become available
                 </p>
-              </CardFooter>
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Domain
+                </Button>
+              </div>
             )}
-          </Card>
-        </div>
-        
-        <div className="space-y-6">
+          </CardContent>
+
+          {sortedWishlist.length > 0 && (
+            <CardFooter className="pt-0 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualCheck}
+                disabled={isChecking}
+                className="flex items-center gap-2"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                {isChecking ? "Checking..." : "Check Availability"}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 sm:mt-0">
+                Last checked: {wishlist[0]?.availability?.lastChecked ? formatDate(wishlist[0].availability.lastChecked) : new Date().toLocaleDateString()}
+              </p>
+            </CardFooter>
+          )}
+        </Card>
+
+        {/* Notifications and Statistics below main wishlist card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Notifications</CardTitle>
@@ -473,14 +626,11 @@ const WishlistPage: React.FC = () => {
                 <Label htmlFor="email-notify">Email Notifications</Label>
                 <Switch id="email-notify" defaultChecked />
               </div>
-              
               <div className="flex items-center justify-between">
                 <Label htmlFor="browser-notify">Browser Notifications</Label>
                 <Switch id="browser-notify" defaultChecked />
               </div>
-              
               <Separator />
-              
               <div className="flex items-center justify-between">
                 <Label htmlFor="check-frequency">Check Frequency</Label>
                 <Select defaultValue="daily">
@@ -496,7 +646,6 @@ const WishlistPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
           <Card>
             <CardHeader>
               <CardTitle>Statistics</CardTitle>
@@ -506,39 +655,34 @@ const WishlistPage: React.FC = () => {
                 <span className="text-sm">Total domains</span>
                 <Badge variant="outline" className="font-mono">{wishlist.length}</Badge>
               </div>
-              
               <div className="flex items-center justify-between">
                 <span className="text-sm">Available domains</span>
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className="font-mono bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
                 >
                   {wishlist.filter(item => item.availability?.status === 'available').length}
                 </Badge>
               </div>
-              
               <div className="flex items-center justify-between">
                 <span className="text-sm">Unavailable domains</span>
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className="font-mono bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
                 >
                   {wishlist.filter(item => item.availability?.status === 'unavailable').length}
                 </Badge>
               </div>
-              
               <div className="flex items-center justify-between">
                 <span className="text-sm">Pending check</span>
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className="font-mono bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
                 >
                   {wishlist.filter(item => item.availability?.status === 'pending').length}
                 </Badge>
               </div>
-              
               <Separator />
-              
               <div className="flex items-center justify-between">
                 <span className="text-sm">Notifications enabled</span>
                 <Badge variant="outline" className="font-mono">
@@ -554,3 +698,4 @@ const WishlistPage: React.FC = () => {
 };
 
 export default WishlistPage;
+
