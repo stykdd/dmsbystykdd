@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
   Heart,
+  Pencil,
   Plus,
   Trash2,
   Search,
@@ -25,6 +25,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { bulkCheckAvailability } from '@/services/domain/availabilityService';
 import { fetchWhoisData } from '@/services/domain/whoisService';
+import { getCategories, addCategory } from "@/services/categoryService";
+import { Textarea } from "@/components/ui/textarea";
 
 const DOMAIN_CATEGORIES = ["Technology", "Finance", "Health", "E-commerce", "Education", "Entertainment"];
 
@@ -54,6 +56,26 @@ const WishlistPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(false);
+  const [categories, setCategories] = useState<{ id: string, name: string; color: string; }[]>([]);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
+  const [editTarget, setEditTarget] = useState<WishlistDomain | null>(null);
+  const [editDomain, setEditDomain] = useState<string>("");
+  const [editCategory, setEditCategory] = useState<string>("");
+  const [editNote, setEditNote] = useState<string>("");
+
+  // Add Category dialog
+  const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("#8B5CF6"); // Default to Vivid Purple
+  const [categoryAddError, setCategoryAddError] = useState<string | null>(null);
+
+  // Load categories from storage/service
+  useEffect(() => {
+    setCategories(getCategories());
+  }, [isAddCategoryDialogOpen]);
+
+  // Update DOMAIN_CATEGORIES to use dynamic data
+  const DOMAIN_CATEGORIES = categories.map(c => c.name);
 
   // Load initial demo data
   useEffect(() => {
@@ -272,6 +294,67 @@ const WishlistPage: React.FC = () => {
     }
   };
 
+  // --- Editing Domain Functionality ---
+  const openEditDialog = (domainObj: WishlistDomain) => {
+    setEditTarget(domainObj);
+    setEditDomain(domainObj.domain);
+    setEditCategory(domainObj.category);
+    setEditNote(domainObj.note || "");
+    setError(null);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditDomain = () => {
+    // Validate domain
+    if (!editDomain.trim()) {
+      setError("Please enter a domain name");
+      return;
+    }
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(editDomain)) {
+      setError("Please enter a valid domain name (e.g., example.com)");
+      return;
+    }
+    if (wishlist.some(item => item.domain === editDomain && item.id !== editTarget?.id)) {
+      setError("This domain is already in your wishlist");
+      return;
+    }
+    setError(null);
+    setWishlist(prev =>
+      prev.map(item =>
+        item.id === editTarget?.id
+          ? { ...item, domain: editDomain, category: editCategory, note: editNote }
+          : item
+      )
+    );
+    setIsEditDialogOpen(false);
+    setEditTarget(null);
+  };
+
+  // --- Adding New Category ---
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
+      setCategoryAddError("Category name cannot be empty");
+      return;
+    }
+    if (categories.some(({ name }) => name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
+      setCategoryAddError("Category already exists");
+      return;
+    }
+    const newCat = addCategory({
+      name: newCategoryName,
+      color: newCategoryColor,
+      description: "",
+    });
+    setCategories(getCategories()); // Refresh
+    setNewCategoryName("");
+    setIsAddCategoryDialogOpen(false);
+    setCategoryAddError(null);
+    // Set the new category in dialogs
+    setSelectedCategory(newCat.name);
+    setEditCategory(newCat.name);
+  };
+
   // Filter wishlist based on category
   const filteredWishlist = wishlist.filter(item =>
     filterCategory === "all" || item.category === filterCategory
@@ -409,18 +492,63 @@ const WishlistPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DOMAIN_CATEGORIES.map(category => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                <div className="flex gap-2">
+                  <Select value={selectedCategory} onValueChange={v => {
+                    if (v === "__add_new__") {
+                      setIsAddCategoryDialogOpen(true);
+                    } else {
+                      setSelectedCategory(v);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background">
+                      {DOMAIN_CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                      <SelectItem key="__add_new__" value="__add_new__" className="text-primary">
+                        <Plus className="inline w-4 h-4 mr-1" /> Add Category
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    </SelectContent>
+                  </Select>
+                  {/* Add Category Dialog */}
+                  <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Category</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-2 py-2">
+                        {categoryAddError && (
+                          <Alert variant="destructive">
+                            <AlertDescription>{categoryAddError}</AlertDescription>
+                          </Alert>
+                        )}
+                        <Label htmlFor="new-cat-name">Name</Label>
+                        <Input
+                          id="new-cat-name"
+                          value={newCategoryName}
+                          onChange={e => setNewCategoryName(e.target.value)}
+                          placeholder="Category name"
+                        />
+                        <Label htmlFor="new-cat-color">Color</Label>
+                        <Input
+                          id="new-cat-color"
+                          type="color"
+                          className="w-10 h-10 p-0 border-none bg-transparent"
+                          value={newCategoryColor}
+                          onChange={e => setNewCategoryColor(e.target.value)}
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddCategoryDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleAddCategory}>Add Category</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="note">Note (Optional)</Label>
@@ -478,7 +606,7 @@ const WishlistPage: React.FC = () => {
               {sortedWishlist.length} {sortedWishlist.length === 1 ? 'domain' : 'domains'} in your wishlist
             </CardDescription>
           </CardHeader>
-
+          {/* Selected Actions */}
           {selectedDomains.size > 0 && (
             <div className="px-6 py-2 bg-muted flex items-center justify-between">
               <span className="text-sm">
@@ -495,7 +623,7 @@ const WishlistPage: React.FC = () => {
               </Button>
             </div>
           )}
-
+          {/* Domain Table */}
           <CardContent className="pt-4">
             {sortedWishlist.length > 0 ? (
               <div className="space-y-4">
@@ -507,12 +635,13 @@ const WishlistPage: React.FC = () => {
                       aria-label="Select all"
                     />
                   </div>
-                  <div className="grid grid-cols-12 gap-2 w-full text-sm font-medium text-muted-foreground">
+                  <div className="grid grid-cols-13 gap-2 w-full text-sm font-medium text-muted-foreground">
                     <div className="col-span-4">Domain</div>
                     <div className="col-span-2">Category</div>
                     <div className="col-span-2">Date Added</div>
                     <div className="col-span-2">Status</div>
                     <div className="col-span-2">Notifications</div>
+                    <div className="col-span-1"></div>
                   </div>
                 </div>
 
@@ -531,7 +660,7 @@ const WishlistPage: React.FC = () => {
                           aria-label={`Select ${item.domain}`}
                         />
                       </div>
-                      <div className="grid grid-cols-12 gap-2 w-full items-center">
+                      <div className="grid grid-cols-13 gap-2 w-full items-center">
                         <div className="col-span-4 font-medium truncate">
                           {item.domain}
                           {item.note && (
@@ -576,6 +705,17 @@ const WishlistPage: React.FC = () => {
                             <BellOff className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
+                        <div className="col-span-1 flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            aria-label="Edit domain"
+                            onClick={() => openEditDialog(item)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -595,7 +735,6 @@ const WishlistPage: React.FC = () => {
               </div>
             )}
           </CardContent>
-
           {sortedWishlist.length > 0 && (
             <CardFooter className="pt-0 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2">
               <Button
@@ -615,7 +754,74 @@ const WishlistPage: React.FC = () => {
           )}
         </Card>
 
-        {/* Notifications and Statistics below main wishlist card */}
+        {/* EDIT DOMAIN DIALOG */}
+        <Dialog open={isEditDialogOpen} onOpenChange={open => { setIsEditDialogOpen(open); if (!open) setEditTarget(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Domain</DialogTitle>
+              <DialogDescription>Edit the domain name, category, or note.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="edit-domain">Domain Name</Label>
+                <Input
+                  id="edit-domain"
+                  placeholder="example.com"
+                  value={editDomain}
+                  onChange={e => setEditDomain(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <div className="flex gap-2">
+                  <Select value={editCategory} onValueChange={v => {
+                    if (v === "__add_new__") setIsAddCategoryDialogOpen(true);
+                    else setEditCategory(v);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background">
+                      {DOMAIN_CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                      <SelectItem key="__add_new__" value="__add_new__" className="text-primary">
+                        <Plus className="inline w-4 h-4 mr-1" /> Add Category
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-note">Note (Optional)</Label>
+                <Textarea
+                  id="edit-note"
+                  placeholder="Add a note about this domain"
+                  value={editNote}
+                  onChange={e => setEditNote(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditDomain}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Notifications and Statistics moved below wishlist */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -685,17 +891,3 @@ const WishlistPage: React.FC = () => {
               <Separator />
               <div className="flex items-center justify-between">
                 <span className="text-sm">Notifications enabled</span>
-                <Badge variant="outline" className="font-mono">
-                  {wishlist.filter(item => item.notificationsEnabled).length}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default WishlistPage;
-
