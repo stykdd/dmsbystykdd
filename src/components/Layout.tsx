@@ -5,7 +5,7 @@ import { Navigate, Outlet, Link, useNavigate, useLocation } from 'react-router-d
 import Sidebar from './Sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { NotificationBell } from '@/contexts/NotificationContext';
-import { UserRound, Heart, Search, Bell } from 'lucide-react';
+import { UserRound, Heart } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -20,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import Footer from './Footer';
 import { initializeApp } from '@/utils/appInitializer';
-import { useTheme } from '@/contexts/ThemeContext';
 
 const Layout: React.FC = () => {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -29,7 +28,6 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
   
   // Initialize app services
   useEffect(() => {
@@ -78,13 +76,6 @@ const Layout: React.FC = () => {
     handleAuthRedirect();
   }, [location, navigate, toast]);
   
-  // Force dark theme to match the design
-  useEffect(() => {
-    if (theme !== 'dark') {
-      setTheme('dark');
-    }
-  }, [theme, setTheme]);
-  
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
@@ -104,7 +95,7 @@ const Layout: React.FC = () => {
   };
   
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background dark">
+    <div className="h-screen flex flex-col overflow-hidden">
       <div className="flex-1 flex">
         <Sidebar 
           collapsed={sidebarCollapsed} 
@@ -112,98 +103,72 @@ const Layout: React.FC = () => {
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <main className="flex-1 flex flex-col">
-            <div className="sticky top-0 z-10 flex justify-end items-center px-6 py-3 h-[65px] bg-background border-b border-border">
-              <div className="mr-auto">
-                <div className="relative w-64">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <input
-                    type="search"
-                    placeholder="Search..."
-                    className="pl-10 pr-4 py-2 w-full bg-muted/50 rounded-md border-0 focus:ring-2 focus:ring-primary/20 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
+          <div className="sticky top-0 z-10 flex justify-end items-center p-4 h-[65px] bg-background border-b">
+            <div className="flex items-center gap-3">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-1.5"
+                      onClick={() => window.open('https://donate.stykdd.com', '_blank')}
+                    >
+                      <Heart className="h-4 w-4 text-red-500" fill="#ea384c" />
+                      <span className="text-sm font-medium">Support Us</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Support Us</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <NotificationBell />
+              
+              <DropdownMenu>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <Bell className="h-5 w-5" />
-                      </Button>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="relative">
+                          <UserRound className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Notifications</TooltipContent>
+                    <TooltipContent>Profile</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                        onClick={() => window.open('https://donate.stykdd.com', '_blank')}
-                      >
-                        <Heart className="h-4 w-4 text-red-500" fill="#ea384c" />
-                        <span className="text-sm font-medium">Support Us</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Support Us</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <DropdownMenu>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="relative rounded-full bg-muted/50 text-foreground">
-                            <UserRound className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>Profile</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    {user && (
-                      <DropdownMenuItem disabled className="text-sm text-muted-foreground">
-                        {user.email}
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/profile">
-                        View Profile
-                      </Link>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  {user && (
+                    <DropdownMenuItem disabled className="text-sm text-muted-foreground">
+                      {user.email}
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/settings">
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">
+                      View Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div className="px-6 py-4 flex-1 overflow-y-auto w-full max-h-[calc(100vh-130px)]">
-              <Outlet />
-            </div>
-          </main>
-        </div>
+          </div>
+          <div className="px-6 py-4 flex-1 overflow-y-auto w-full max-h-[calc(100vh-130px)]">
+            <Outlet />
+          </div>
+        </main>
+      </div>
       </div>
       <Footer />
     </div>
