@@ -28,7 +28,6 @@ import { fetchWhoisData } from '@/services/domain/whoisService';
 import { getCategories, addCategory } from "@/services/categoryService";
 import { Textarea } from "@/components/ui/textarea";
 
-// Interface for wishlist domain items
 interface WishlistDomain {
   id: string;
   domain: string;
@@ -54,28 +53,24 @@ const WishlistPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(false);
-  const [categories, setCategories<{ id: string, name: string; color: string; }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; color: string; }[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [editTarget, setEditTarget] = useState<WishlistDomain | null>(null);
   const [editDomain, setEditDomain] = useState<string>("");
   const [editCategory, setEditCategory] = useState<string>("");
   const [editNote, setEditNote] = useState<string>("");
 
-  // Add Category dialog
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryColor, setNewCategoryColor] = useState("#8B5CF6"); // Default to Vivid Purple
+  const [newCategoryColor, setNewCategoryColor] = useState("#8B5CF6");
   const [categoryAddError, setCategoryAddError] = useState<string | null>(null);
 
-  // Load categories from storage/service
   useEffect(() => {
     setCategories(getCategories());
   }, [isAddCategoryDialogOpen]);
 
-  // Get categories dynamically
   const domainCategories = categories.map(c => c.name);
 
-  // Load initial demo data
   useEffect(() => {
     const demoWishlist: WishlistDomain[] = [
       {
@@ -133,7 +128,6 @@ const WishlistPage: React.FC = () => {
     setWishlist(demoWishlist);
   }, []);
 
-  // Real-time check all wishlist domains whenever wishlist changes
   useEffect(() => {
     const checkAll = async () => {
       setIsChecking(true);
@@ -143,14 +137,12 @@ const WishlistPage: React.FC = () => {
         return;
       }
 
-      // Start all as pending
       setWishlist(oldList =>
         oldList.map(w => unresolved.find(u => u.id === w.id) ?
           { ...w, availability: { ...w.availability, status: 'pending', lastChecked: new Date().toISOString() } }
           : w
         )
       );
-      // Check
       try {
         const checkResults = await bulkCheckAvailability(wishlist.map(w => w.domain));
         const updateAvailability = async (result: { domain: string; available: boolean; error?: string; }) => {
@@ -167,10 +159,8 @@ const WishlistPage: React.FC = () => {
               expiryDate: null,
             };
           } else {
-            // Unavailable: fetch expiry date from WHOIS
             try {
               const whois = await fetchWhoisData(result.domain);
-              // Try to find an expiry date: several keys could be present in WHOIS results
               const expiry =
                 whois.registryExpiryDate ||
                 whois.expirationDate ||
@@ -191,7 +181,6 @@ const WishlistPage: React.FC = () => {
           }
         };
 
-        // Map updated availability
         const newAvailabilityArray = await Promise.all(
           checkResults.map(updateAvailability)
         );
@@ -206,7 +195,6 @@ const WishlistPage: React.FC = () => {
         setIsChecking(false);
       }
     };
-    // Only check if some are pending
     if (wishlist.some(w => w.availability?.status === 'pending' || !w.availability)) {
       checkAll();
     }
@@ -218,14 +206,12 @@ const WishlistPage: React.FC = () => {
       return;
     }
 
-    // Simple domain validation
     const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
     if (!domainRegex.test(newDomain)) {
       setError("Please enter a valid domain name (e.g., example.com)");
       return;
     }
 
-    // Check if domain already exists in wishlist
     if (wishlist.some(item => item.domain === newDomain)) {
       setError("This domain is already in your wishlist");
       return;
@@ -292,7 +278,6 @@ const WishlistPage: React.FC = () => {
     }
   };
 
-  // --- Editing Domain Functionality ---
   const openEditDialog = (domainObj: WishlistDomain) => {
     setEditTarget(domainObj);
     setEditDomain(domainObj.domain);
@@ -303,7 +288,6 @@ const WishlistPage: React.FC = () => {
   };
 
   const handleEditDomain = () => {
-    // Validate domain
     if (!editDomain.trim()) {
       setError("Please enter a domain name");
       return;
@@ -329,7 +313,6 @@ const WishlistPage: React.FC = () => {
     setEditTarget(null);
   };
 
-  // --- Adding New Category ---
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) {
       setCategoryAddError("Category name cannot be empty");
@@ -344,33 +327,28 @@ const WishlistPage: React.FC = () => {
       color: newCategoryColor,
       description: "",
     });
-    setCategories(getCategories()); // Refresh
+    setCategories(getCategories());
     setNewCategoryName("");
     setIsAddCategoryDialogOpen(false);
     setCategoryAddError(null);
-    // Set the new category in dialogs
     setSelectedCategory(newCat.name);
     setEditCategory(newCat.name);
   };
 
-  // Filter wishlist based on category
   const filteredWishlist = wishlist.filter(item =>
     filterCategory === "all" || item.category === filterCategory
   );
 
-  // Sort wishlist based on date
   const sortedWishlist = [...filteredWishlist].sort((a, b) => {
     const dateA = new Date(a.dateAdded).getTime();
     const dateB = new Date(b.dateAdded).getTime();
     return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
-  // Format date for display
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Status badge color
   const getStatusColor = (status: 'available' | 'unavailable' | 'pending') => {
     switch (status) {
       case 'available': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
@@ -393,7 +371,6 @@ const WishlistPage: React.FC = () => {
     }
   };
 
-  // Real-time check handler for button
   const handleManualCheck = async () => {
     setIsChecking(true);
     setWishlist(oldList =>
@@ -453,7 +430,6 @@ const WishlistPage: React.FC = () => {
     setIsChecking(false);
   };
 
-  // -----------------RENDER--------------------
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
@@ -512,7 +488,6 @@ const WishlistPage: React.FC = () => {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  {/* Add Category Dialog */}
                   <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
                     <DialogContent>
                       <DialogHeader>
@@ -604,7 +579,6 @@ const WishlistPage: React.FC = () => {
               {sortedWishlist.length} {sortedWishlist.length === 1 ? 'domain' : 'domains'} in your wishlist
             </CardDescription>
           </CardHeader>
-          {/* Selected Actions */}
           {selectedDomains.size > 0 && (
             <div className="px-6 py-2 bg-muted flex items-center justify-between">
               <span className="text-sm">
@@ -621,7 +595,6 @@ const WishlistPage: React.FC = () => {
               </Button>
             </div>
           )}
-          {/* Domain Table */}
           <CardContent className="pt-4">
             {sortedWishlist.length > 0 ? (
               <div className="space-y-4">
@@ -633,13 +606,13 @@ const WishlistPage: React.FC = () => {
                       aria-label="Select all"
                     />
                   </div>
-                  <div className="grid grid-cols-6 gap-2 w-full text-sm font-medium text-muted-foreground">
-                    <div className="col-span-2">Domain</div>
-                    <div>Category</div>
-                    <div>Date Added</div>
-                    <div>Status</div>
-                    <div>Notifications</div>
-                    <div>Edit</div>
+                  <div className="grid grid-cols-6 gap-4 w-full text-sm font-medium text-muted-foreground">
+                    <div className="col-span-1">Domain</div>
+                    <div className="col-span-1">Category</div>
+                    <div className="col-span-1">Date Added</div>
+                    <div className="col-span-1">Status</div>
+                    <div className="col-span-1">Notifications</div>
+                    <div className="col-span-1">Edit</div>
                   </div>
                 </div>
 
@@ -658,24 +631,19 @@ const WishlistPage: React.FC = () => {
                           aria-label={`Select ${item.domain}`}
                         />
                       </div>
-                      {/* The table row with 6 columns as specified */}
                       <div className="grid grid-cols-6 gap-2 w-full items-center">
-                        {/* Domain (with optional note) */}
-                        <div className="col-span-2 font-medium truncate">
+                        <div className="col-span-1 font-medium truncate">
                           {item.domain}
                           {item.note && (
                             <span className="ml-2 text-xs text-muted-foreground italic">{item.note}</span>
                           )}
                         </div>
-                        {/* Category */}
                         <div>
                           <Badge variant="outline">{item.category}</Badge>
                         </div>
-                        {/* Date Added */}
                         <div className="text-sm text-muted-foreground">
                           {formatDate(item.dateAdded)}
                         </div>
-                        {/* Status */}
                         <div>
                           {item.availability ? (
                             <div className="flex flex-col">
@@ -696,7 +664,6 @@ const WishlistPage: React.FC = () => {
                             <span className="text-sm">Unknown</span>
                           )}
                         </div>
-                        {/* Notifications */}
                         <div className="flex justify-between items-center">
                           <Switch
                             checked={item.notificationsEnabled}
@@ -709,7 +676,6 @@ const WishlistPage: React.FC = () => {
                             <BellOff className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
-                        {/* Edit */}
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             size="icon"
@@ -759,7 +725,6 @@ const WishlistPage: React.FC = () => {
           )}
         </Card>
 
-        {/* EDIT DOMAIN DIALOG */}
         <Dialog open={isEditDialogOpen} onOpenChange={open => { setIsEditDialogOpen(open); if (!open) setEditTarget(null); }}>
           <DialogContent>
             <DialogHeader>
@@ -826,7 +791,6 @@ const WishlistPage: React.FC = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Notifications and Statistics moved below wishlist */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
