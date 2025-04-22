@@ -9,7 +9,7 @@ import {
   Search,
   ArrowUpDown,
 } from "lucide-react";
-import { DialogTrigger } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCategories, addCategory } from "@/services/categoryService";
 
@@ -198,12 +198,12 @@ const WishlistPage: React.FC = () => {
           onCategoryChange={setSelectedCategory}
           onAddCategory={() => setIsAddCategoryDialogOpen(true)}
         />
-        <DialogTrigger asChild>
+        <Dialog>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Domain
           </Button>
-        </DialogTrigger>
+        </Dialog>
       </div>
 
       <div className="space-y-6">
